@@ -254,7 +254,7 @@ async function checkAuthStatus() {
     if (authStatus === 'authenticated' && token) {
         // Verify token is still valid by checking with API
         try {
-            const response = await fetch('/api/auth/verify', {
+            const response = await fetch(getApiUrl('/api/auth/verify'), {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -362,7 +362,7 @@ window.handleLogout = async function handleLogout() {
     if (token) {
         try {
             // Call logout API
-            await fetch('/api/auth/logout', {
+            await fetch(getApiUrl('/api/auth/logout'), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -810,7 +810,7 @@ async function loadMarkersFromAPI(categoryFilter = 'all') {
         }
         
         // Fetch media from API
-        let url = '/api/media';
+        let url = getApiUrl('/api/media');
         if (categoryFilter !== 'all') {
             url += `?category=${categoryFilter}`;
         }
@@ -1306,7 +1306,7 @@ window.handleLogin = async function handleLogin(event) {
     }
     
     try {
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch(getApiUrl('/api/auth/login'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1407,7 +1407,7 @@ window.handleSignUp = async function handleSignUp(event) {
     }
     
     try {
-        const response = await fetch('/api/auth/register', {
+        const response = await fetch(getApiUrl('/api/auth/register'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1420,7 +1420,7 @@ window.handleSignUp = async function handleSignUp(event) {
         if (response.ok) {
             // Account created - auto-login the user
             try {
-                const loginResponse = await fetch('/api/auth/login', {
+                const loginResponse = await fetch(getApiUrl('/api/auth/login'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1778,7 +1778,7 @@ window.handleUpload = async function handleUpload(event) {
         console.log('📤 Uploading to API with coordinates:', { latitude, longitude, category });
         
         // Upload to API (stores in SQLite on server)
-        const response = await fetch('/api/media/upload', {
+        const response = await fetch(getApiUrl('/api/media/upload'), {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -2714,7 +2714,8 @@ async function showGallery(lat, lng, category) {
         }
         
         // Fetch media from API by location
-        let url = `/api/media/location?lat=${lat}&lng=${lng}`;
+        let url = getApiUrl('/api/media/location');
+        url += `?lat=${lat}&lng=${lng}`;
         if (category && category !== 'all') {
             url += `&category=${category}`;
         }

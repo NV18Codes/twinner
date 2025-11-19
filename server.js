@@ -10,7 +10,33 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+// CORS configuration - allow requests from Netlify and localhost
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:8080',
+    'http://127.0.0.1:5500',
+    'http://localhost:5500',
+    // Add your Netlify domain here after deployment
+    // 'https://your-site-name.netlify.app',
+    // 'https://your-custom-domain.com'
+];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        // Allow requests from allowed origins or if in development
+        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+            callback(null, true);
+        } else {
+            // For production, you can be more strict
+            // For now, allow all origins (you can restrict this later)
+            callback(null, true);
+        }
+    },
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
