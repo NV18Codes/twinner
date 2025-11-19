@@ -462,59 +462,29 @@ app.post('/api/media/upload', verifyToken, upload.single('media'), async (req, r
 });
 
 // Get all media (with optional category filter)
-// If authenticated, return only user's media. If not authenticated, return all media.
+// ALL users (authenticated or not) see ALL media from the shared database
 app.get('/api/media', (req, res) => {
     const { category } = req.query;
     const token = req.headers.authorization?.replace('Bearer ', '') || req.query.token;
     
-    let query = 'SELECT * FROM media';
-    const params = [];
-    const conditions = [];
-
-    // If token is provided, verify it and filter by user_id
+    // Check if user is authenticated (for logging purposes only)
     if (token) {
         db.get(
             'SELECT s.*, u.email FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.session_token = ? AND s.expires_at > datetime("now")',
             [token],
             (err, session) => {
-                if (err) {
-                    console.error('Session lookup error:', err);
-                    // If error, treat as unauthenticated and show all
-                    return getPublicMedia(category, res);
-                }
-
                 if (session) {
-                    // Authenticated user - show only their media
-                    let query = 'SELECT * FROM media WHERE user_id = ?';
-                    const params = [session.user_id];
-
-                    if (category && category !== 'all') {
-                        query += ' AND category = ?';
-                        params.push(category);
-                    }
-
-                    query += ' ORDER BY upload_date DESC';
-
-                    console.log('GET /api/media (authenticated) - Query:', query, 'Params:', params, 'User ID:', session.user_id);
-
-                    db.all(query, params, (err, rows) => {
-                        if (err) {
-                            console.error('Database error:', err);
-                            return res.status(500).json({ error: err.message });
-                        }
-
-                        console.log(`Returning ${rows.length} media items for user ${session.user_id}`);
-                        res.json({ media: rows });
-                    });
+                    console.log(`GET /api/media - Authenticated user: ${session.email} (ID: ${session.user_id}) - Showing ALL media`);
                 } else {
-                    // Invalid token - treat as unauthenticated
-                    console.log('Invalid or expired token - showing all media');
-                    getPublicMedia(category, res);
+                    console.log('GET /api/media - Public access (no valid token) - Showing ALL media');
                 }
+                // Always show all media regardless of authentication
+                getPublicMedia(category, res);
             }
         );
     } else {
-        // No token - show all media (public)
+        console.log('GET /api/media - Public access (no token) - Showing ALL media');
+        // Show all media (public)
         getPublicMedia(category, res);
     }
 });
@@ -545,7 +515,7 @@ function getPublicMedia(category, res) {
 }
 
 // Get media by location
-// If authenticated, return only user's media. If not authenticated, return all media.
+// ALL users (authenticated or not) see ALL media at the location from the shared database
 app.get('/api/media/location', (req, res) => {
     const { lat, lng, category } = req.query;
     const token = req.headers.authorization?.replace('Bearer ', '') || req.query.token;
@@ -554,45 +524,24 @@ app.get('/api/media/location', (req, res) => {
         return res.status(400).json({ error: 'Latitude and longitude required' });
     }
 
-    // If token is provided, verify it and filter by user_id
+    // Check if user is authenticated (for logging purposes only)
     if (token) {
         db.get(
             'SELECT s.*, u.email FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.session_token = ? AND s.expires_at > datetime("now")',
             [token],
             (err, session) => {
-                if (err) {
-                    console.error('Session lookup error:', err);
-                    // If error, treat as unauthenticated and show all
-                    return getPublicMediaByLocation(lat, lng, category, res);
-                }
-
                 if (session) {
-                    // Authenticated user - show only their media at this location
-                    let query = `SELECT * FROM media WHERE 
-                                 user_id = ? AND
-                                 ABS(latitude - ?) < 0.001 AND ABS(longitude - ?) < 0.001`;
-                    const params = [session.user_id, parseFloat(lat), parseFloat(lng)];
-
-                    if (category && category !== 'all') {
-                        query += ' AND category = ?';
-                        params.push(category);
-                    }
-
-                    db.all(query, params, (err, rows) => {
-                        if (err) {
-                            return res.status(500).json({ error: err.message });
-                        }
-
-                        res.json({ media: rows });
-                    });
+                    console.log(`GET /api/media/location - Authenticated user: ${session.email} (ID: ${session.user_id}) - Showing ALL media at location`);
                 } else {
-                    // Invalid token - treat as unauthenticated
-                    getPublicMediaByLocation(lat, lng, category, res);
+                    console.log('GET /api/media/location - Public access (no valid token) - Showing ALL media at location');
                 }
+                // Always show all media at this location regardless of authentication
+                getPublicMediaByLocation(lat, lng, category, res);
             }
         );
     } else {
-        // No token - show all media at this location (public)
+        console.log('GET /api/media/location - Public access (no token) - Showing ALL media at location');
+        // Show all media at this location (public)
         getPublicMediaByLocation(lat, lng, category, res);
     }
 });
