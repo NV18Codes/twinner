@@ -1,0 +1,20 @@
+# Netlify redirects file
+# Static assets should be served directly (no redirect)
+# Only HTML routes should redirect to index.html
+
+# Allow .well-known directory
+/.well-known/*  /.well-known/:splat  200
+
+# Allow all static file extensions
+/*.png  /:splat.png  200
+/*.jpg  /:splat.jpg  200
+/*.jpeg  /:splat.jpeg  200
+/*.gif  /:splat.gif  200
+/*.svg  /:splat.svg  200
+/*.css  /:splat.css  200
+/*.js  /:splat.js  200
+/*.json  /:splat.json  200
+
+# All other routes go to index.html (SPA routing)
+/*  /index.html  200
+

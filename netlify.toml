@@ -3,7 +3,7 @@
 [build]
   # No build command needed for static site
   command = "echo 'No build needed'"
-  # Publish the root directory
+  # Publish the root directory (HTML files are in root)
   publish = "."
 
 # Environment variables (set these in Netlify dashboard instead)
@@ -11,10 +11,8 @@
 #   REACT_APP_API_URL = "https://your-backend-api.com"
 
 # Redirect rules - handle client-side routing
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Note: Static assets are handled by public/_redirects file
+# This ensures .well-known, images, CSS, JS files are served directly
 
 # Headers for security
 [[headers]]
