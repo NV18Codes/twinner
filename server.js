@@ -16,9 +16,9 @@ const allowedOrigins = [
     'http://localhost:8080',
     'http://127.0.0.1:5500',
     'http://localhost:5500',
-    // Add your Netlify domain here after deployment
-    // 'https://your-site-name.netlify.app',
-    // 'https://your-custom-domain.com'
+    // Netlify deployment
+    'https://twinnir.netlify.app',
+    'https://twinnir.netlify.app/',
 ];
 
 app.use(cors({
@@ -26,16 +26,25 @@ app.use(cors({
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
         
-        // Allow requests from allowed origins or if in development
-        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+        // Normalize origin (remove trailing slash)
+        const normalizedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+        
+        // Check if origin is in allowed list
+        if (allowedOrigins.some(allowed => {
+            const normalizedAllowed = allowed.endsWith('/') ? allowed.slice(0, -1) : allowed;
+            return normalizedOrigin === normalizedAllowed;
+        })) {
             callback(null, true);
         } else {
-            // For production, you can be more strict
-            // For now, allow all origins (you can restrict this later)
+            // For production, allow all origins for now (can restrict later)
+            // Log for debugging
+            console.log('CORS: Allowing origin:', normalizedOrigin);
             callback(null, true);
         }
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -173,14 +182,22 @@ function generateToken() {
 
 // Register
 app.post('/api/auth/register', async (req, res) => {
+    console.log('📝 Registration attempt received');
+    console.log('Request body:', { email: req.body.email, password: req.body.password ? '***' : 'missing' });
+    
     const { email, password } = req.body;
 
-    console.log('Registration attempt for:', email);
-
     if (!email || !password) {
+        console.log('❌ Registration failed: Missing email or password');
         return res.status(400).json({ error: 'Email and password required' });
     }
 
+    if (password.length < 6) {
+        console.log('❌ Registration failed: Password too short');
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    console.log('✅ Validating email format and hashing password...');
     const bcrypt = require('bcrypt');
     const passwordHash = await bcrypt.hash(password, 10);
 
@@ -189,17 +206,18 @@ app.post('/api/auth/register', async (req, res) => {
         [email, passwordHash],
         function(err) {
             if (err) {
-                console.error('Registration error:', err);
+                console.error('❌ Registration error:', err);
                 if (err.message.includes('UNIQUE')) {
                     return res.status(409).json({ error: 'Email already exists' });
                 }
                 return res.status(500).json({ error: err.message });
             }
 
-            console.log('User registered successfully, ID:', this.lastID);
+            console.log('✅ User registered successfully, ID:', this.lastID, 'Email:', email);
             res.json({
                 message: 'User registered successfully',
-                user_id: this.lastID
+                user_id: this.lastID,
+                email: email
             });
         }
     );
@@ -207,9 +225,13 @@ app.post('/api/auth/register', async (req, res) => {
 
 // Login
 app.post('/api/auth/login', async (req, res) => {
+    console.log('🔐 Login attempt received');
+    console.log('Request body:', { email: req.body.email, password: req.body.password ? '***' : 'missing' });
+    
     const { email, password } = req.body;
 
     if (!email || !password) {
+        console.log('❌ Login failed: Missing email or password');
         return res.status(400).json({ error: 'Email and password required' });
     }
 
@@ -218,19 +240,25 @@ app.post('/api/auth/login', async (req, res) => {
         [email],
         async (err, user) => {
             if (err) {
+                console.error('❌ Database error during login:', err);
                 return res.status(500).json({ error: err.message });
             }
 
             if (!user) {
+                console.log('❌ Login failed: User not found for email:', email);
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
 
+            console.log('✅ User found, verifying password...');
             const bcrypt = require('bcrypt');
             const valid = await bcrypt.compare(password, user.password_hash);
 
             if (!valid) {
+                console.log('❌ Login failed: Invalid password for email:', email);
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
+            
+            console.log('✅ Password valid, creating session...');
 
             // Create session
             const token = generateToken();
