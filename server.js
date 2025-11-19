@@ -10,41 +10,38 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-// CORS configuration - allow requests from Netlify and localhost
-const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:8080',
-    'http://127.0.0.1:5500',
-    'http://localhost:5500',
-    // Netlify deployment
-    'https://twinnir.netlify.app',
-    'https://twinnir.netlify.app/',
-];
+// CORS configuration - handle preflight and actual requests
+// IMPORTANT: Handle CORS before other middleware to catch OPTIONS requests
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    
+    // Allow all origins for now (can restrict later)
+    if (origin) {
+        res.header('Access-Control-Allow-Origin', origin);
+    } else {
+        res.header('Access-Control-Allow-Origin', '*');
+    }
+    
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
+    
+    // Handle preflight requests (OPTIONS)
+    if (req.method === 'OPTIONS') {
+        console.log('✅ CORS preflight request handled for origin:', origin);
+        return res.sendStatus(200);
+    }
+    
+    next();
+});
 
+// Also use cors middleware as backup
 app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        // Normalize origin (remove trailing slash)
-        const normalizedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
-        
-        // Check if origin is in allowed list
-        if (allowedOrigins.some(allowed => {
-            const normalizedAllowed = allowed.endsWith('/') ? allowed.slice(0, -1) : allowed;
-            return normalizedOrigin === normalizedAllowed;
-        })) {
-            callback(null, true);
-        } else {
-            // For production, allow all origins for now (can restrict later)
-            // Log for debugging
-            console.log('CORS: Allowing origin:', normalizedOrigin);
-            callback(null, true);
-        }
-    },
+    origin: true, // Allow all origins
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
