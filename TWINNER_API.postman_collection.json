@@ -1,0 +1,282 @@
+{
+	"info": {
+		"name": "TWINNER API",
+		"description": "Complete API collection for TWINNER Systems - Geotagged Media Management",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('auth_token', jsonData.token);",
+									"    pm.environment.set('user_id', jsonData.user.id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "logout"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Media",
+			"item": [
+				{
+					"name": "Upload Media",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "media",
+									"type": "file",
+									"src": [],
+									"description": "Image (JPG, PNG) or Video (MP4, MOV, etc.)"
+								},
+								{
+									"key": "category",
+									"value": "solar",
+									"type": "text",
+									"description": "Category: solar, unused, building, equipment, other"
+								},
+								{
+									"key": "description",
+									"value": "Solar panel array on building roof",
+									"type": "text",
+									"description": "Optional description"
+								},
+								{
+									"key": "latitude",
+									"value": "-26.2041",
+									"type": "text",
+									"description": "REQUIRED for videos. Optional for images (if EXIF GPS exists)"
+								},
+								{
+									"key": "longitude",
+									"value": "28.0473",
+									"type": "text",
+									"description": "REQUIRED for videos. Optional for images (if EXIF GPS exists)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/media/upload",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media", "upload"]
+						},
+						"description": "Upload image/video:\n- Images: If EXIF GPS exists, latitude/longitude are optional\n- Videos: Latitude/longitude are REQUIRED (videos don't have EXIF GPS)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Media",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media?category=all",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media"],
+							"query": [
+								{
+									"key": "category",
+									"value": "all",
+									"description": "Filter by category: solar, unused, building, equipment, other, or 'all'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Media by Location",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/media/location?lat=-26.2041&lng=28.0473&category=all",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media", "location"],
+							"query": [
+								{
+									"key": "lat",
+									"value": "-26.2041",
+									"description": "Latitude"
+								},
+								{
+									"key": "lng",
+									"value": "28.0473",
+									"description": "Longitude"
+								},
+								{
+									"key": "category",
+									"value": "all",
+									"description": "Optional category filter"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Media",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/media/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "media", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Locations",
+			"item": [
+				{
+					"name": "Get Grouped Locations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/locations?category=all",
+							"host": ["{{base_url}}"],
+							"path": ["api", "locations"],
+							"query": [
+								{
+									"key": "category",
+									"value": "all",
+									"description": "Filter by category: solar, unused, building, equipment, other, or 'all'"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Export",
+			"item": [
+				{
+					"name": "Export User Data",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/export",
+							"host": ["{{base_url}}"],
+							"path": ["api", "export"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000"
+		},
+		{
+			"key": "auth_token",
+			"value": ""
+		}
+	]
+}
+

@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TWINNER - Intelligent Digital Twins, Real-World Impact</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #ffffff;
+            color: #000;
+            line-height: 1.6;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* ------------------------------ */
+        /* HEADER */
+        /* ------------------------------ */
+        .header {
+            background: #ffffff;
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-img {
+            height: 40px;
+            width: auto;
+            max-width: 200px;
+            object-fit: contain;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #000000;
+            text-transform: uppercase;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn-signin {
+            background: transparent;
+            border: 2px solid #23d18b;
+            color: #23d18b;
+            padding: 0.5rem 1.5rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-signin:hover {
+            background: #23d18b;
+            color: #ffffff;
+        }
+
+        .btn-demo {
+            background: #23d18b;
+            color: #ffffff;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-demo:hover {
+            background: #2ecc71;
+        }
+
+        /* ------------------------------ */
+        /* HERO SECTION */
+        /* ------------------------------ */
+        .hero {
+            background: linear-gradient(135deg, #3ddc97, #2db6f0);
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            position: relative;
+        }
+
+        .hero-content {
+            text-align: center;
+            z-index: 1;
+        }
+
+        .hero-title {
+            font-size: 4rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-title-light {
+            color: #e0f8e0;
+            display: block;
+            font-weight: 400;
+        }
+
+        .hero-title-bold {
+            color: #0a0a0a;
+            display: block;
+            font-weight: 700;
+        }
+
+        .hero-tagline {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            letter-spacing: -0.01em;
+        }
+
+        .tagline-light {
+            color: #e0f8e0;
+            font-weight: 400;
+        }
+
+        .tagline-dark {
+            color: #0a3d2d;
+            font-weight: 600;
+        }
+
+        /* ------------------------------ */
+        /* MAIN CONTENT */
+        /* ------------------------------ */
+        .main-content {
+            background: #ffffff;
+            padding: 4rem 2rem;
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .content-text {
+            font-size: 1.25rem;
+            line-height: 1.8;
+            color: #666666;
+            margin-bottom: 2rem;
+        }
+
+        .btn-explore {
+            background: #2ecc71;
+            color: #ffffff;
+            border: none;
+            padding: 1rem 2.5rem;
+            border-radius: 18px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-explore:hover {
+            transform: translateY(-2px);
+        }
+
+        /* ------------------------------ */
+        /* BOTTOM BANNER */
+        /* ------------------------------ */
+        .bottom-banner {
+            background: linear-gradient(135deg, #40d5ff, #0070c9);
+            padding: 4rem 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .banner-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .banner-shapes,
+        .banner-shapes-right {
+            width: 200px;
+            height: 200px;
+            opacity: 0.3;
+        }
+
+        .banner-text {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .banner-line {
+            width: 100px;
+            height: 2px;
+            background: #ffffff;
+            margin: 0 auto 1rem;
+        }
+
+        .banner-text h3 {
+            color: #ffffff;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            border: 2px solid #ffffff;
+            padding: 1.5rem 3rem;
+            display: inline-block;
+            text-transform: uppercase;
+        }
+
+        /* ------------------------------ */
+        /* FOOTER */
+        /* ------------------------------ */
+        .footer {
+            background: #000000;
+            color: #ffffff;
+            padding: 3rem 2rem 1rem;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: flex-start;
+            gap: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            line-height: 1.5rem;
+            text-transform: uppercase;
+        }
+
+        .logo-i {
+            display: flex;
+            flex-direction: row;
+            gap: 1px;
+            margin: 0 0.1rem;
+            align-items: center;
+            height: 1.5rem;
+        }
+
+        .logo-line {
+            width: 2px;
+            height: 1.5rem;
+        }
+
+        .logo-line-blue {
+            background: #00d1ff;
+        }
+
+        .logo-line-green {
+            background: #00ff99;
+        }
+
+        .footer-divider {
+            width: 1px;
+            background: rgba(255, 255, 255, 0.2);
+            min-height: 100px;
+        }
+
+        .footer-sections {
+            display: flex;
+            gap: 4rem;
+            flex: 1;
+        }
+
+        .footer-section h5 {
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .footer-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            color: #23d18b;
+            display: flex;
+            align-items: center;
+        }
+
+        .footer-section ul li svg {
+            flex-shrink: 0;
+            margin-right: 0.5rem;
+        }
+
+        .footer-section ul li a {
+            color: #23d18b;
+            transition: color 0.2s;
+        }
+
+        .footer-section ul li a:hover {
+            color: #2ecc71;
+        }
+
+        .footeropyright {
+            max-width: 1400px;
+            margin: 1rem auto 0;
+            text-align: right;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85rem;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 0.75rem;
+            background: #23d18b;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-submit:hover {
+            background: #2ecc71;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-tagline {
+                font-size: 1.75rem;
+            }
+            
+            .footer-content {
+                flex-direction: column;
+                gap: 2rem;
+            }
+            
+            .footer-sections {
+                flex-direction: column;
+                gap: 2rem;
+            }
+            
+            .banner-text h3 {
+                font-size: 1.5rem;
+                padding: 1rem 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Header -->
+    <header class="header">
+        <nav class="nav">
+            <div class="logo-container">
+                <img src="/.well-known/appspecific/Logo.png" alt="TWINNER" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="logo-text" style="display: none;">TWINNER</div>
+            </div>
+            <div class="nav-buttons">
+                <button class="btn-signin" onclick="window.location.href='map.html'">Sign In</button>
+                <button class="btn-demo" onclick="showDemoModal()">Request a Demo</button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="hero-title-light">Intelligent Digital Twins,</span><br>
+                <span class="hero-title-bold">Real-World Impact</span>
+            </h1>
+            <h2 class="hero-tagline">
+                <span class="tagline-light">Twin</span>
+                <span class="tagline-dark">Your World</span>
+            </h2>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <section class="main-content">
+        <p class="content-text">
+            Transform your physical assets, operations, and entire environments into dynamic digital replicas, unlocking unparalleled insights, efficiency, and innovation across every sector.
+        </p>
+        <button class="btn-explore" onclick="window.location.href='map.html'">Explore Our Solutions</button>
+    </section>
+
+    <!-- Bottom Banner -->
+    <section class="bottom-banner">
+        <div class="banner-content">
+            <div class="banner-shapes"></div>
+            <div class="banner-text">
+                <div class="banner-line"></div>
+                <h3>TWIN YOUR WORLD</h3>
+            </div>
+            <div class="banner-shapes-right"></div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <span class="logo-text">TW</span>
+                <div class="logo-i">
+                    <div class="logo-line logo-line-blue"></div>
+                    <div class="logo-line logo-line-green"></div>
+                </div>
+                <span class="logo-text">NNER</span>
+            </div>
+            <div class="footer-divider"></div>
+            <div class="footer-sections">
+                <div class="footer-section">
+                    <h5>Quick Links</h5>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="map.html">Solutions</a></li>
+                        <li><a href="#contact">Contact Us</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h5>Contact Info</h5>
+                    <ul>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                                <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                            </svg>
+                            <span>(+27) 11 656 3356</span>
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                            </svg>
+                            <span>info@twinner.co.za</span>
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                            </svg>
+                            <span>Johannesburg, South Africa</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="footeropyright">
+            Copyright © 2025 Twinner - All Rights Reserved.
+        </div>
+    </footer>
+
+    <!-- Request Demo Modal -->
+    <div id="demoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeDemoModal()">&times;</span>
+            <h2>Request a Demo</h2>
+            <p style="margin-bottom: 1.5rem; color: #666;">Please provide your email and we'll get back to you soon.</p>
+            <form id="demoForm" onsubmit="handleDemoRequest(event)">
+                <div class="form-group">
+                    <label for="demoEmail">Email Address</label>
+                    <input type="email" id="demoEmail" required placeholder="your.email@example.com">
+                </div>
+                <button type="submit" class="btn-submit">Submit Request</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showDemoModal() {
+            document.getElementById('demoModal').classList.add('show');
+        }
+
+        function closeDemoModal() {
+            document.getElementById('demoModal').classList.remove('show');
+            document.getElementById('demoForm').reset();
+        }
+
+        function handleDemoRequest(event) {
+            event.preventDefault();
+            const email = document.getElementById('demoEmail').value;
+            if (email) {
+                alert('Thank you! We\'ll contact you at ' + email + ' soon.');
+                closeDemoModal();
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('demoModal');
+            if (event.target === modal) {
+                closeDemoModal();
+            }
+        }
+    </script>
+
+</body>
+</html>

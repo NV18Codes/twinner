@@ -1,0 +1,7 @@
+node_modules/
+uploads/
+twinner.db
+twinner.db-journal
+.env
+*.log
+.DS_Store

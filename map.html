@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TWINNER - Map View</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <!-- Tesseract.js for OCR to extract coordinates from image text -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
+    <link rel="stylesheet" href="map-styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="map-header">
+        <div class="header-content">
+            <div class="logo-container">
+                <img src="/.well-known/appspecific/Logo.png" alt="TWINNER" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="logo-text" style="display: none;">TWINNER</div>
+            </div>
+            <div class="header-controls">
+                <!-- Search Bar -->
+                <div class="search-container">
+                    <select id="searchCategory" class="search-select" onchange="handleSearch()">
+                        <option value="all">All Categories</option>
+                        <option value="solar">🔶 Solar Panels</option>
+                        <option value="unused">🔷 Unused Assets</option>
+                        <option value="building">🔵 Buildings</option>
+                        <option value="equipment">🟣 Equipment</option>
+                        <option value="other">⚫ Other</option>
+                    </select>
+                </div>
+                <button class="btn-signin" id="signInBtn" onclick="showLoginModal()">Sign In</button>
+                <button class="btn-signup" id="signUpBtn" onclick="showSignUpModal()">Sign Up</button>
+                <button class="btn-demo" id="requestDemoBtn" onclick="showDemoModal()">Request a Demo</button>
+                <button class="btn-upload hidden" id="uploadBtn" onclick="showUploadModal()">Upload Media</button>
+                <button class="btn-logout hidden" id="logoutBtn" onclick="handleLogout()">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Map Container -->
+    <div class="map-container">
+        <div id="map" class="map"></div>
+        
+        <!-- 3D Virtual Tour View (hidden by default) -->
+        <div id="virtualTourView" class="virtual-tour-view hidden">
+            <div class="tour-controls">
+                <button class="tour-btn" onclick="exitVirtualTour()" title="Exit Virtual Tour">
+                    <span>✕</span> Exit Tour
+                </button>
+                <button class="tour-btn" onclick="toggleTourFullscreen()" title="Fullscreen">
+                    <span>⛶</span> Fullscreen
+                </button>
+            </div>
+            <div id="tourCanvas" class="tour-canvas"></div>
+            <div class="tour-info-panel">
+                <h3 id="tourLocationName">Location</h3>
+                <p id="tourLocationAddress">Address loading...</p>
+                <div class="tour-media-gallery" id="tourMediaGallery"></div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>Asset Locations</h3>
+                <button class="btn-close-sidebar" onclick="toggleSidebar()">×</button>
+            </div>
+            <div class="sidebar-content" id="sidebarContent">
+                <div class="location-list" id="locationList"></div>
+            </div>
+        </div>
+
+        <!-- Request Demo Modal -->
+        <div id="demoModal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close" onclick="closeDemoModal()">&times;</span>
+                <h2>Request a Demo</h2>
+                <p style="margin-bottom: 1.5rem; color: #666; font-size: 0.9rem;">Please provide your email and we'll get back to you soon.</p>
+                <form id="demoForm" onsubmit="handleDemoRequest(event)">
+                    <div class="form-group">
+                        <label for="demoEmail">Email Address</label>
+                        <input type="email" id="demoEmail" required placeholder="your.email@example.com">
+                    </div>
+                    <button type="submit" class="btn-submit">Submit Request</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Login Modal -->
+        <div id="loginModal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close" onclick="closeLoginModal()">&times;</span>
+                <h2>Sign In</h2>
+                <p style="margin-bottom: 1.5rem; color: #666; font-size: 0.9rem;">Sign in to access the platform or create a new account.</p>
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" required placeholder="your.email@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" required placeholder="Enter password">
+                    </div>
+                    <button type="submit" class="btn-submit">Sign In</button>
+                </form>
+                <p style="margin-top: 1rem; font-size: 0.85rem; color: #666; text-align: center;">
+                    Don't have an account? <a href="#" onclick="closeLoginModal(); showSignUpModal();" style="color: #23d18b; text-decoration: underline; cursor: pointer;">Sign Up</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Sign Up Modal -->
+        <div id="signUpModal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close" onclick="closeSignUpModal()">&times;</span>
+                <h2>Create Account</h2>
+                <p style="margin-bottom: 1.5rem; color: #666; font-size: 0.9rem;">Sign up to start using the platform.</p>
+                <form id="signUpForm" onsubmit="handleSignUp(event)">
+                    <div class="form-group">
+                        <label for="signUpEmail">Email</label>
+                        <input type="email" id="signUpEmail" required placeholder="your.email@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="signUpPassword">Password</label>
+                        <input type="password" id="signUpPassword" required placeholder="Enter password (min 6 characters)">
+                    </div>
+                    <div class="form-group">
+                        <label for="signUpConfirmPassword">Confirm Password</label>
+                        <input type="password" id="signUpConfirmPassword" required placeholder="Confirm password">
+                    </div>
+                    <button type="submit" class="btn-submit">Sign Up</button>
+                </form>
+                <p style="margin-top: 1rem; font-size: 0.85rem; color: #666; text-align: center;">
+                    Already have an account? <a href="#" onclick="closeSignUpModal(); showLoginModal();" style="color: #23d18b; text-decoration: underline; cursor: pointer;">Sign In</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Upload Modal -->
+        <div id="uploadModal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close" onclick="closeUploadModal()">&times;</span>
+                <h2>Upload Geotagged Media</h2>
+                <form id="uploadForm" onsubmit="handleUpload(event)">
+                    <div class="form-group">
+                        <label for="mediaFile">Select Image/Video</label>
+                        <input type="file" id="mediaFile" accept="image/*,video/*" required>
+                        <p style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                            <strong>Note:</strong> Images with EXIF geotags will auto-detect location. Videos require manual location input.
+                        </p>
+                        <div id="imagePreview" style="margin-top: 0.5rem; display: none;">
+                            <img id="previewImg" src="" alt="Preview" style="max-width: 100%; max-height: 200px; border-radius: 4px; display: none;">
+                            <video id="previewVideo" src="" controls style="max-width: 100%; max-height: 200px; border-radius: 4px; display: none;"></video>
+                            <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+                                <strong>Tip:</strong> For images with visible coordinates, you can paste them in the text box below. For videos, use "Click on Map" to set location.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <select id="category" required>
+                            <option value="solar">Solar Panels</option>
+                            <option value="unused">Unused Assets</option>
+                            <option value="building">Buildings</option>
+                            <option value="equipment">Equipment</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description (Optional)</label>
+                        <textarea id="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Location (Auto-detected from image geotags)</label>
+                        <div class="location-inputs">
+                            <input type="number" id="latitude" step="0.000000000000001" placeholder="Latitude (auto-filled)" readonly>
+                            <input type="number" id="longitude" step="0.000000000000001" placeholder="Longitude (auto-filled)" readonly>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <button type="button" class="btn-get-location" onclick="getCurrentLocation()" style="flex: 1;">Use Current Location</button>
+                            <button type="button" class="btn-get-location" onclick="enableMapClick()" style="flex: 1; background: #ff9800;">Click on Map</button>
+                        </div>
+                        <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+                            <span id="locationStatus">Select an image with geotags to auto-detect location, or click on map to set location</span>
+                        </p>
+                        <div id="manualCoordInput" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: #fff3cd; border-radius: 4px;">
+                            <p style="font-size: 0.85rem; margin-bottom: 0.5rem;"><strong>Coordinates visible in image?</strong></p>
+                            <input type="text" id="coordTextInput" placeholder="Paste coordinates from image (e.g., 'Lat 13.323528° Long 75.771964°')" 
+                                   style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                            <button type="button" onclick="extractFromText()" 
+                                    style="margin-top: 0.5rem; padding: 0.5rem; background: #ff9800; color: #fff; border: none; border-radius: 4px; cursor: pointer; width: 100%;">
+                                Extract Coordinates
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-submit">Upload</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Image Gallery Modal -->
+        <div id="galleryModal" class="modal hidden">
+            <div class="modal-content gallery-content">
+                <span class="close" onclick="closeGalleryModal()">&times;</span>
+                <h2 id="galleryTitle">Media Gallery</h2>
+                <div class="gallery-grid" id="galleryGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js for 3D Virtual Tour -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script src="map-db.js"></script>
+    <script src="map-app.js"></script>
+    <script type="module" src="virtual-tour-module.js"></script>
+</body>
+</html>
+

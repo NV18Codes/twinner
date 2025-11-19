@@ -1,0 +1,926 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* Header */
+.map-header {
+    background: #ffffff;
+    padding: 1rem 2rem;
+    color: #000000;
+    z-index: 1000;
+    position: relative;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 100%;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+}
+
+.logo-img {
+    height: 40px;
+    width: auto;
+    max-width: 200px;
+    object-fit: contain;
+}
+
+.logo-text {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #000000;
+}
+
+.header-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Search Container */
+.search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-select {
+    background: #ffffff;
+    border: 2px solid #e0e0e0;
+    color: #333;
+    padding: 0.5rem 2.5rem 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 12px;
+    min-width: 180px;
+}
+
+.search-select:hover {
+    border-color: #23d18b;
+}
+
+.search-select:focus {
+    outline: none;
+    border-color: #23d18b;
+    box-shadow: 0 0 0 3px rgba(35, 209, 139, 0.1);
+}
+
+/* Category color indicators in dropdown */
+.search-select option[value="solar"] {
+    background: #ff9800;
+    color: #fff;
+}
+
+.search-select option[value="unused"] {
+    background: #8d6e63;
+    color: #fff;
+}
+
+.search-select option[value="building"] {
+    background: #2196f3;
+    color: #fff;
+}
+
+.search-select option[value="equipment"] {
+    background: #9c27b0;
+    color: #fff;
+}
+
+.search-select option[value="other"] {
+    background: #607d8b;
+    color: #fff;
+}
+
+.filter-select {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.btn-signin,
+.btn-signup {
+    background: transparent;
+    border: 2px solid #23d18b;
+    color: #23d18b;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.btn-signin:hover,
+.btn-signup:hover {
+    background: #23d18b;
+    color: #ffffff;
+}
+
+.btn-demo,
+.btn-upload,
+.btn-logout {
+    background: #23d18b;
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.btn-demo:hover,
+.btn-upload:hover {
+    background: #2ecc71;
+}
+
+.btn-logout {
+    background: #f44336;
+}
+
+.btn-logout:hover {
+    background: #d32f2f;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Map Container */
+.map-container {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 60px);
+    background: #000;
+}
+
+.map {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+}
+
+/* Ensure mapbox container is visible */
+#map {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Sidebar */
+.sidebar {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 350px;
+    height: 100%;
+    background: #ffffff;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    transform: translateX(100%);
+    transition: transform 0.3s;
+    overflow-y: auto;
+}
+
+.sidebar.open {
+    transform: translateX(0);
+}
+
+.sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-header h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.btn-close-sidebar {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+}
+
+.sidebar-content {
+    padding: 1rem;
+}
+
+.location-item {
+    padding: 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.location-item:hover {
+    background: #f5f5f5;
+}
+
+.location-item h4 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.location-item .category {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.category-solar { background: #ff9800; color: #fff; }
+.category-unused { background: #8d6e63; color: #fff; }
+.category-building { background: #2196f3; color: #fff; }
+.category-equipment { background: #9c27b0; color: #fff; }
+.category-other { background: #607d8b; color: #fff; }
+
+.location-item .count {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.gallery-content {
+    max-width: 900px;
+}
+
+.close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #666;
+    line-height: 1;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #23d18b;
+}
+
+.location-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.btn-get-location {
+    background: #2196f3;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    width: 100%;
+}
+
+.btn-submit {
+    width: 100%;
+    background: #23d18b;
+    color: #fff;
+    border: none;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-submit:hover {
+    background: #2ecc71;
+}
+
+/* Gallery */
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.gallery-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.gallery-item img,
+.gallery-item video {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.gallery-item .overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    color: #fff;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+}
+
+/* Mapbox GL Map Styles */
+.mapboxgl-popup-content {
+    border-radius: 8px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.mapboxgl-ctrl-group {
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Custom Marker Styles */
+.custom-marker {
+    width: 30px;
+    height: 30px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.custom-marker:hover {
+    transform: rotate(-45deg) scale(1.1);
+}
+
+/* Style Switcher Buttons */
+.style-btn {
+    background: #fff;
+    border: none;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    border-bottom: 1px solid #ddd;
+    transition: background 0.2s;
+}
+
+.style-btn:first-child {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+
+.style-btn:last-child {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+    border-bottom: none;
+}
+
+.style-btn:hover {
+    background: #f5f5f5;
+}
+
+.style-btn.active {
+    background: #23d18b;
+    color: #fff;
+}
+
+/* Map container cursor for click-to-set-location */
+#map.map-click-mode {
+    cursor: crosshair !important;
+}
+
+/* Virtual Tour View Styles - Similar to rcs3d.co.za */
+.virtual-tour-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+}
+
+.virtual-tour-view.hidden {
+    display: none;
+}
+
+.tour-controls {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 2001;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tour-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #000;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.tour-btn:hover {
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.tour-canvas {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+}
+
+.tour-canvas:active {
+    cursor: grabbing;
+}
+
+.tour-info-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.7));
+    color: #fff;
+    padding: 1.5rem;
+    z-index: 2001;
+    max-height: 40vh;
+    overflow-y: auto;
+}
+
+.tour-info-panel h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+    color: #23d18b;
+}
+
+.tour-info-panel p {
+    color: #ccc;
+    margin-bottom: 1rem;
+}
+
+.tour-media-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.tour-media-item {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.tour-media-item:hover {
+    transform: scale(1.05);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.tour-media-thumb {
+    width: 100%;
+    height: 100px;
+    overflow: hidden;
+    background: #1a1a1a;
+}
+
+.tour-media-thumb img,
+.tour-media-thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.tour-media-info {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.tour-media-info strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: #fff;
+}
+
+.tour-media-info p {
+    color: #999;
+    font-size: 0.75rem;
+    margin: 0;
+}
+
+.tour-media-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.tour-media-modal-content {
+    background: #1a1a1a;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 90vw;
+    max-height: 90vh;
+    position: relative;
+    color: #fff;
+}
+
+.tour-modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    transition: background 0.2s;
+}
+
+.tour-modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.tour-media-modal-content h3 {
+    margin-top: 1rem;
+    color: #23d18b;
+}
+
+.tour-media-modal-content p {
+    color: #ccc;
+    margin-top: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    /* Header */
+    .map-header {
+        padding: 0.75rem 1rem;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+    
+    .logo {
+        font-size: 1rem;
+    }
+    
+    .header-controls {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .filter-select {
+        flex: 1;
+        min-width: 150px;
+        font-size: 0.85rem;
+        padding: 0.4rem 0.75rem;
+    }
+    
+    .btn-upload,
+    .btn-export,
+    .btn-home {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.75rem;
+        flex: 1;
+        min-width: 100px;
+    }
+    
+    /* Map Container */
+    .map-container {
+        height: calc(100vh - 120px);
+    }
+    
+    /* Sidebar */
+    .sidebar {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .sidebar-header {
+        padding: 1rem;
+    }
+    
+    .sidebar-header h3 {
+        font-size: 1rem;
+    }
+    
+    .location-item {
+        padding: 0.75rem;
+    }
+    
+    .location-item h4 {
+        font-size: 0.9rem;
+    }
+    
+    /* Modal */
+    .modal-content {
+        width: 95%;
+        padding: 1.5rem;
+        max-height: 95vh;
+        margin: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 0.9rem;
+        padding: 0.6rem;
+    }
+    
+    .location-inputs {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .btn-get-location,
+    .btn-submit {
+        font-size: 0.9rem;
+        padding: 0.6rem;
+    }
+    
+    /* Gallery */
+    .gallery-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .gallery-item img,
+    .gallery-item video {
+        height: 150px;
+    }
+    
+    /* Virtual Tour */
+    .tour-controls {
+        top: 0.5rem;
+        right: 0.5rem;
+        flex-direction: column;
+    }
+    
+    .tour-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+    }
+    
+    .tour-info-panel {
+        padding: 1rem;
+        max-height: 50vh;
+    }
+    
+    .tour-info-panel h3 {
+        font-size: 1.2rem;
+    }
+    
+    .tour-media-gallery {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 0.5rem;
+    }
+    
+    .tour-media-thumb {
+        height: 80px;
+    }
+    
+    .tour-media-modal-content {
+        padding: 1rem;
+        margin: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Header */
+    .map-header {
+        padding: 0.5rem;
+    }
+    
+    .logo {
+        font-size: 0.9rem;
+        letter-spacing: 1px;
+    }
+    
+    .header-controls {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .filter-select,
+    .btn-upload,
+    .btn-export,
+    .btn-home {
+        width: 100%;
+        font-size: 0.8rem;
+    }
+    
+    /* Map Container */
+    .map-container {
+        height: calc(100vh - 140px);
+    }
+    
+    /* Modal */
+    .modal-content {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 0;
+        max-height: 100vh;
+    }
+    
+    .close {
+        top: 0.5rem;
+        right: 0.5rem;
+        font-size: 1.5rem;
+    }
+    
+    .form-group label {
+        font-size: 0.9rem;
+    }
+    
+    /* Gallery */
+    .gallery-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Sidebar */
+    .location-item {
+        padding: 0.5rem;
+    }
+    
+    .location-item h4 {
+        font-size: 0.85rem;
+    }
+    
+    .category {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.4rem;
+    }
+}
+
+/* Tablet adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .sidebar {
+        width: 300px;
+    }
+    
+    .header-controls {
+        gap: 0.75rem;
+    }
+    
+    .modal-content {
+        max-width: 600px;
+    }
+}
+
+/* Landscape mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+    .map-container {
+        height: calc(100vh - 100px);
+    }
+    
+    .map-header {
+        padding: 0.5rem 1rem;
+    }
+    
+    .header-content {
+        flex-direction: row;
+        align-items: center;
+    }
+    
+    .tour-info-panel {
+        max-height: 30vh;
+    }
+}
