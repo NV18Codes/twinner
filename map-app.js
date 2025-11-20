@@ -287,12 +287,11 @@ async function updateUIForAuth() {
     
     const signInBtn = document.getElementById('signInBtn');
     const signUpBtn = document.getElementById('signUpBtn');
-    const requestDemoBtn = document.getElementById('requestDemoBtn');
     const uploadBtn = document.getElementById('uploadBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     
     if (isAuthenticated) {
-        // Hide "Sign In", "Sign Up", and "Request a Demo", show upload and logout buttons
+        // Hide "Sign In" and "Sign Up" buttons when authenticated, show upload and logout buttons
         if (signInBtn) {
             signInBtn.classList.add('hidden');
             signInBtn.style.display = 'none';
@@ -300,10 +299,6 @@ async function updateUIForAuth() {
         if (signUpBtn) {
             signUpBtn.classList.add('hidden');
             signUpBtn.style.display = 'none';
-        }
-        if (requestDemoBtn) {
-            requestDemoBtn.classList.add('hidden');
-            requestDemoBtn.style.display = 'none';
         }
         if (uploadBtn) {
             uploadBtn.classList.remove('hidden');
@@ -316,7 +311,7 @@ async function updateUIForAuth() {
             logoutBtn.style.display = 'inline-block';
         }
     } else {
-        // Show "Sign In", "Sign Up", and "Request a Demo", hide upload and logout buttons
+        // Show "Sign In" and "Sign Up" buttons when NOT authenticated, hide upload and logout buttons
         if (signInBtn) {
             signInBtn.classList.remove('hidden');
             signInBtn.style.display = 'inline-block';
@@ -324,10 +319,6 @@ async function updateUIForAuth() {
         if (signUpBtn) {
             signUpBtn.classList.remove('hidden');
             signUpBtn.style.display = 'inline-block';
-        }
-        if (requestDemoBtn) {
-            requestDemoBtn.classList.remove('hidden');
-            requestDemoBtn.style.display = 'inline-block';
         }
         if (uploadBtn) {
             uploadBtn.classList.add('hidden');
@@ -1151,7 +1142,6 @@ window.handleLogin = async function handleLogin(event) {
             // Force immediate UI update with direct DOM manipulation
             const signInBtn = document.getElementById('signInBtn');
             const signUpBtn = document.getElementById('signUpBtn');
-            const requestDemoBtn = document.getElementById('requestDemoBtn');
             const uploadBtn = document.getElementById('uploadBtn');
             
             if (signInBtn) {
@@ -1161,10 +1151,6 @@ window.handleLogin = async function handleLogin(event) {
             if (signUpBtn) {
                 signUpBtn.classList.add('hidden');
                 signUpBtn.style.display = 'none';
-            }
-            if (requestDemoBtn) {
-                requestDemoBtn.classList.add('hidden');
-                requestDemoBtn.style.display = 'none';
             }
             if (uploadBtn) {
                 uploadBtn.classList.remove('hidden');
@@ -1265,7 +1251,6 @@ window.handleSignUp = async function handleSignUp(event) {
                     // Force immediate UI update with direct DOM manipulation
                     const signInBtn = document.getElementById('signInBtn');
                     const signUpBtn = document.getElementById('signUpBtn');
-                    const requestDemoBtn = document.getElementById('requestDemoBtn');
                     const uploadBtn = document.getElementById('uploadBtn');
                     
                     if (signInBtn) {
@@ -1275,10 +1260,6 @@ window.handleSignUp = async function handleSignUp(event) {
                     if (signUpBtn) {
                         signUpBtn.classList.add('hidden');
                         signUpBtn.style.display = 'none';
-                    }
-                    if (requestDemoBtn) {
-                        requestDemoBtn.classList.add('hidden');
-                        requestDemoBtn.style.display = 'none';
                     }
                     if (uploadBtn) {
                         uploadBtn.classList.remove('hidden');

@@ -33,7 +33,7 @@
         /* ------------------------------ */
         .header {
             background: #ffffff;
-            padding: 1rem 2rem;
+            padding: 0.5rem 2rem;
             position: sticky;
             top: 0;
             z-index: 1000;
@@ -55,9 +55,9 @@
         }
 
         .logo-img {
-            height: 40px;
+            height: 30px;
             width: auto;
-            max-width: 200px;
+            max-width: 150px;
             object-fit: contain;
         }
 
@@ -75,7 +75,7 @@
             align-items: center;
         }
 
-        .btn-signin {
+        .btn-signin, .btn-signup {
             background: transparent;
             border: 2px solid #23d18b;
             color: #23d18b;
@@ -87,7 +87,7 @@
             transition: all 0.2s;
         }
 
-        .btn-signin:hover {
+        .btn-signin:hover, .btn-signup:hover {
             background: #23d18b;
             color: #ffffff;
         }
@@ -272,6 +272,13 @@
             gap: 0;
         }
 
+        .footer-logo-img {
+            height: 50px;
+            width: auto;
+            max-width: 200px;
+            object-fit: contain;
+        }
+
         .logo-text {
             font-size: 1.5rem;
             font-weight: 700;
@@ -308,43 +315,23 @@
             min-height: 100px;
         }
 
-        .footer-sections {
+        .footer-contact {
             display: flex;
-            gap: 4rem;
-            flex: 1;
-        }
-
-        .footer-section h5 {
-            margin-bottom: 1rem;
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .footer-section ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .footer-section ul li {
-            margin-bottom: 0.75rem;
-            font-size: 0.9rem;
-            color: #23d18b;
-            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
             align-items: center;
         }
 
-        .footer-section ul li svg {
-            flex-shrink: 0;
-            margin-right: 0.5rem;
-        }
-
-        .footer-section ul li a {
+        .footer-contact-item {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.9rem;
             color: #23d18b;
-            transition: color 0.2s;
+            gap: 0.5rem;
         }
 
-        .footer-section ul li a:hover {
-            color: #2ecc71;
+        .footer-contact-item svg {
+            flex-shrink: 0;
         }
 
         .footeropyright {
@@ -359,6 +346,13 @@
         .modal {
             display: none;
             position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            align-items: center;
+            justify-content: center;
             z-index: 2000;
             left: 0;
             top: 0;
@@ -368,9 +362,13 @@
         }
 
         .modal.show {
-            display: flex;
+            display: flex !important;
             align-items: center;
             justify-content: center;
+        }
+
+        .modal.hidden {
+            display: none !important;
         }
 
         .modal-content {
@@ -446,9 +444,10 @@
                 gap: 2rem;
             }
             
-            .footer-sections {
+            .footer-contact {
                 flex-direction: column;
-                gap: 2rem;
+                gap: 1rem;
+                align-items: flex-start;
             }
             
             .banner-text h3 {
@@ -468,7 +467,8 @@
                 <div class="logo-text" style="display: none;">TWINNIR</div>
             </div>
             <div class="nav-buttons">
-                <button class="btn-signin" onclick="window.location.href='map.html'">Sign In</button>
+                <button class="btn-signin" onclick="showLoginModal()">Sign In</button>
+                <button class="btn-signup" onclick="showSignUpModal()">Sign Up</button>
             </div>
         </nav>
     </header>
@@ -494,7 +494,7 @@
         </p>
         <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
             <button class="btn-explore" onclick="window.location.href='map.html'">Explore Our Solutions</button>
-            <button class="btn-demo" onclick="showDemoModal()">Request a Demo</button>
+            <button class="btn-explore" onclick="showDemoModal()">Request a Demo</button>
         </div>
     </section>
 
@@ -513,48 +513,25 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
-            <div class="footer-logo">
-                <span class="logo-text">TW</span>
-                <div class="logo-i">
-                    <div class="logo-line logo-line-blue"></div>
-                    <div class="logo-line logo-line-green"></div>
-                </div>
-                <span class="logo-text">NNER</span>
-            </div>
-            <div class="footer-divider"></div>
-            <div class="footer-sections">
-                <div class="footer-section">
-                    <h5>Quick Links</h5>
-                    <ul>
-                        <li><a href="#home">Home</a></li>
-                        <li><a href="map.html">Solutions</a></li>
-                        <li><a href="#contact">Contact Us</a></li>
-                    </ul>
-                </div>
-
-                <div class="footer-section">
-                    <h5>Contact Info</h5>
-                    <ul>
-                        <li>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
-                                <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
-                            </svg>
-                            <span>(+27) 11 656 3356</span>
-                        </li>
-                        <li>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
-                                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
-                            </svg>
-                            <span>info@twinner.co.za</span>
-                        </li>
-                        <li>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
-                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                            </svg>
-                            <span>Johannesburg, South Africa</span>
-                        </li>
-                    </ul>
-                </div>
+            <div class="footer-contact">
+                <span class="footer-contact-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                    </svg>
+                    <span>(+27) 11 656 3356</span>
+                </span>
+                <span class="footer-contact-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    </svg>
+                    <span>info@twinnir.com</span>
+                </span>
+                <span class="footer-contact-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                    <span>Johannesburg, South Africa</span>
+                </span>
             </div>
         </div>
 
@@ -564,7 +541,7 @@
     </footer>
 
     <!-- Request Demo Modal -->
-    <div id="demoModal" class="modal">
+    <div id="demoModal" class="modal hidden">
         <div class="modal-content">
             <span class="close" onclick="closeDemoModal()">&times;</span>
             <h2>Request a Demo</h2>
@@ -579,15 +556,83 @@
         </div>
     </div>
 
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close" onclick="closeLoginModal()">&times;</span>
+            <h2>Sign In</h2>
+            <p style="margin-bottom: 1.5rem; color: #666; font-size: 0.9rem;">Sign in to access the platform or create a new account.</p>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" required placeholder="your.email@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required placeholder="Enter password">
+                </div>
+                <button type="submit" class="btn-submit">Sign In</button>
+            </form>
+            <p style="margin-top: 1rem; font-size: 0.85rem; color: #666; text-align: center;">
+                Don't have an account? <a href="#" onclick="closeLoginModal(); showSignUpModal();" style="color: #23d18b; text-decoration: underline; cursor: pointer;">Sign Up</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Sign Up Modal -->
+    <div id="signUpModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close" onclick="closeSignUpModal()">&times;</span>
+            <h2>Create Account</h2>
+            <p style="margin-bottom: 1.5rem; color: #666; font-size: 0.9rem;">Sign up to start using the platform.</p>
+            <form id="signUpForm" onsubmit="handleSignUp(event)">
+                <div class="form-group">
+                    <label for="signUpEmail">Email</label>
+                    <input type="email" id="signUpEmail" required placeholder="your.email@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="signUpPassword">Password</label>
+                    <input type="password" id="signUpPassword" required placeholder="Enter password (min 6 characters)">
+                </div>
+                <div class="form-group">
+                    <label for="signUpConfirmPassword">Confirm Password</label>
+                    <input type="password" id="signUpConfirmPassword" required placeholder="Confirm password">
+                </div>
+                <button type="submit" class="btn-submit">Sign Up</button>
+            </form>
+            <p style="margin-top: 1rem; font-size: 0.85rem; color: #666; text-align: center;">
+                Already have an account? <a href="#" onclick="closeSignUpModal(); showLoginModal();" style="color: #23d18b; text-decoration: underline; cursor: pointer;">Sign In</a>
+            </p>
+        </div>
+    </div>
+
     <script>
-        function showDemoModal() {
-            document.getElementById('demoModal').classList.add('show');
+        // Load config.js for API URL
+        const API_BASE_URL = 'https://twinner.onrender.com';
+        function getApiUrl(endpoint) {
+            const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+            const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+            return `${baseUrl}/${cleanEndpoint}`;
         }
 
-        function closeDemoModal() {
-            document.getElementById('demoModal').classList.remove('show');
-            document.getElementById('demoForm').reset();
-        }
+        // Demo Modal Functions - Make globally accessible
+        window.showDemoModal = function() {
+            const modal = document.getElementById('demoModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('show');
+            }
+        };
+
+        window.closeDemoModal = function() {
+            const modal = document.getElementById('demoModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('show');
+                const form = document.getElementById('demoForm');
+                if (form) form.reset();
+            }
+        };
 
         function handleDemoRequest(event) {
             event.preventDefault();
@@ -598,11 +643,169 @@
             }
         }
 
-        // Close modal when clicking outside
+        // Login Modal Functions - Make globally accessible
+        window.showLoginModal = function() {
+            const modal = document.getElementById('loginModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('show');
+            } else {
+                console.error('Login modal not found');
+            }
+        };
+
+        window.closeLoginModal = function() {
+            const modal = document.getElementById('loginModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('show');
+                const form = document.getElementById('loginForm');
+                if (form) form.reset();
+            }
+        };
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(getApiUrl('/api/auth/login'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.token) {
+                    // Store auth data
+                    sessionStorage.setItem('twinner_auth', 'authenticated');
+                    sessionStorage.setItem('twinner_token', data.token);
+                    sessionStorage.setItem('twinner_email', data.user.email);
+                    sessionStorage.setItem('twinner_user_id', data.user.id);
+                    
+                    closeLoginModal();
+                    // Redirect to map page
+                    window.location.href = 'map.html';
+                } else {
+                    alert(data.error || 'Login failed. Please check your credentials.');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Login failed. Please try again.');
+            }
+        }
+
+        // Sign Up Modal Functions
+        // Sign Up Modal Functions - Make globally accessible
+        window.showSignUpModal = function() {
+            const modal = document.getElementById('signUpModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('show');
+            } else {
+                console.error('Sign Up modal not found');
+            }
+        };
+
+        window.closeSignUpModal = function() {
+            const modal = document.getElementById('signUpModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('show');
+                const form = document.getElementById('signUpForm');
+                if (form) form.reset();
+            }
+        };
+
+        async function handleSignUp(event) {
+            event.preventDefault();
+            const email = document.getElementById('signUpEmail').value;
+            const password = document.getElementById('signUpPassword').value;
+            const confirmPassword = document.getElementById('signUpConfirmPassword').value;
+
+            if (password !== confirmPassword) {
+                alert('Passwords do not match!');
+                return;
+            }
+
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters long!');
+                return;
+            }
+
+            try {
+                const response = await fetch(getApiUrl('/api/auth/register'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Auto-login after signup
+                    try {
+                        const loginResponse = await fetch(getApiUrl('/api/auth/login'), {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ email, password })
+                        });
+
+                        const loginData = await loginResponse.json();
+
+                        if (loginResponse.ok && loginData.token) {
+                            sessionStorage.setItem('twinner_auth', 'authenticated');
+                            sessionStorage.setItem('twinner_token', loginData.token);
+                            sessionStorage.setItem('twinner_email', loginData.user.email);
+                            sessionStorage.setItem('twinner_user_id', loginData.user.id);
+                            
+                            closeSignUpModal();
+                            // Redirect to map page
+                            window.location.href = 'map.html';
+                        } else {
+                            alert('Account created successfully! Please sign in.');
+                            closeSignUpModal();
+                            showLoginModal();
+                            document.getElementById('loginEmail').value = email;
+                        }
+                    } catch (loginError) {
+                        console.error('Auto-login error:', loginError);
+                        alert('Account created successfully! Please sign in.');
+                        closeSignUpModal();
+                        showLoginModal();
+                        document.getElementById('loginEmail').value = email;
+                    }
+                } else {
+                    alert(data.error || 'Sign up failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Sign up error:', error);
+                alert('Sign up failed. Please try again.');
+            }
+        }
+
+        // Close modals when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('demoModal');
-            if (event.target === modal) {
+            const demoModal = document.getElementById('demoModal');
+            const loginModal = document.getElementById('loginModal');
+            const signUpModal = document.getElementById('signUpModal');
+            
+            if (event.target === demoModal) {
                 closeDemoModal();
+            }
+            if (event.target === loginModal) {
+                closeLoginModal();
+            }
+            if (event.target === signUpModal) {
+                closeSignUpModal();
             }
         }
     </script>

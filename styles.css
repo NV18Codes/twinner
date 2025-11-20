@@ -388,6 +388,10 @@ body {
     display: none;
 }
 
+.modal.show {
+    display: flex;
+}
+
 .modal-content {
     background: var(--light-bg);
     padding: 2rem;
