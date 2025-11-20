@@ -1,5 +1,11 @@
-// Map Application Logic - Using Leaflet (NOT Mapbox)
-// This file uses Leaflet, not Mapbox. Any mapboxgl references are from cached files.
+// ============================================
+// MAP APPLICATION - LEAFLET ONLY (NO MAPBOX)
+// Version: 2.0.0 - Leaflet Implementation
+// ============================================
+// This file uses Leaflet.js for mapping.
+// NO Mapbox/MapboxGL references exist in this file.
+// If you see mapboxgl errors, it's from a cached file.
+// ============================================
 
 let map = null;
 let markers = [];
