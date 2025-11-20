@@ -5,16 +5,16 @@ let sidebarOpen = false;
 let isAuthenticated = false;
 let allMarkers = []; // Store all markers for search functionality
 let currentSearchCategory = 'all';
+let drawControl = null;
+let drawnItems = null; // For annotations
+let currentTileLayer = null; // For switching between map types
 
-// Mapbox token
-mapboxgl.accessToken = 'pk.eyJ1IjoibmF2eWEtY29kZXMxOCIsImEiOiJjbWk0ZzdidjIxMGlsMmxzMGZqY3l3NHYwIn0.k_STCXGdmghlIf44drg28A';
-
-// Category colors
-const categoryColors = {
+// Asset Type colors (matching reference design)
+const assetTypeColors = {
     'solar': '#ff9800',      // Orange
-    'unused': '#8d6e63',     // Brown
-    'building': '#2196f3',    // Blue
     'equipment': '#9c27b0',  // Purple
+    'building': '#2196f3',    // Blue
+    'infrastructure': '#4caf50', // Green
     'other': '#607d8b'        // Blue Grey
 };
 
@@ -24,24 +24,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     await checkAuthStatus();
     await updateUIForAuth();
     
-    // Wait for Mapbox GL to be available
-    if (typeof mapboxgl === 'undefined') {
-        console.error('Mapbox GL JS not loaded. Please check script loading order.');
+    // Wait for Leaflet to be available
+    if (typeof L === 'undefined') {
+        console.error('Leaflet not loaded. Please check script loading order.');
         document.getElementById('map').innerHTML = '<div style="padding: 2rem; text-align: center; color: #fff; background: #000;"><h3>Map Library Not Loaded</h3><p>Please check your internet connection and refresh the page.</p></div>';
         return;
-    }
-    
-    // Check if token is set
-    if (!mapboxgl.accessToken || mapboxgl.accessToken.includes('example')) {
-        console.warn('Mapbox token not configured. Map may not work properly.');
-        document.getElementById('map').innerHTML = `
-            <div style="padding: 2rem; text-align: center; color: #fff; background: #000;">
-                <h3>Mapbox Token Required</h3>
-                <p>Please get a free token from <a href="https://account.mapbox.com/" target="_blank" style="color: #23d18b;">mapbox.com</a></p>
-                <p style="font-size: 0.9rem; margin-top: 1rem;">Update the token in map-app.js (line 8)</p>
-            </div>
-        `;
-        // Still try to initialize with default token
     }
     
     // Initialize map first (before database)
@@ -406,28 +393,32 @@ function applySearchFilter(category) {
     }
     
     const matchingMarkers = [];
-    const bounds = new mapboxgl.LngLatBounds();
+    const bounds = L.latLngBounds([]);
     
     // Filter and highlight markers
     allMarkers.forEach(({ marker, location, category: markerCategory }) => {
-        const markerEl = marker.getElement();
+        const markerEl = marker._icon || marker.getElement();
         
         if (category === 'all' || markerCategory === category) {
             // Show and highlight this marker
-            markerEl.style.opacity = '1';
-            markerEl.style.transform = 'scale(1)';
-            markerEl.style.filter = 'none';
-            markerEl.style.border = '4px solid #ffffff';
-            markerEl.style.boxShadow = '0 3px 6px rgba(0,0,0,0.4)';
+            if (markerEl) {
+                markerEl.style.opacity = '1';
+                markerEl.style.transform = 'scale(1)';
+                markerEl.style.filter = 'none';
+                markerEl.style.border = '4px solid #ffffff';
+                markerEl.style.boxShadow = '0 3px 6px rgba(0,0,0,0.4)';
+            }
             
-            // Add to bounds for zooming
-            bounds.extend([location.lng, location.lat]);
+            // Add to bounds for zooming (Leaflet uses [lat, lng])
+            bounds.extend([location.lat, location.lng]);
             matchingMarkers.push(marker);
         } else {
             // Hide or dim non-matching markers
-            markerEl.style.opacity = '0.3';
-            markerEl.style.filter = 'grayscale(100%)';
-            markerEl.style.border = '2px solid #cccccc';
+            if (markerEl) {
+                markerEl.style.opacity = '0.3';
+                markerEl.style.filter = 'grayscale(100%)';
+                markerEl.style.border = '2px solid #cccccc';
+            }
         }
     });
     
@@ -436,28 +427,24 @@ function applySearchFilter(category) {
         if (matchingMarkers.length === 1) {
             // Single marker - zoom to it
             const marker = matchingMarkers[0];
-            const lngLat = marker.getLngLat();
-            map.flyTo({
-                center: [lngLat.lng, lngLat.lat],
-                zoom: 15,
-                duration: 1000
+            const latLng = marker.getLatLng();
+            map.flyTo(latLng, 15, {
+                duration: 1.0
             });
         } else {
             // Multiple markers - fit bounds
             try {
-                map.fitBounds(bounds, {
-                    padding: { top: 100, bottom: 100, left: 100, right: 100 },
-                    duration: 1000,
-                    maxZoom: 15
+                map.flyToBounds(bounds, {
+                    padding: [100, 100],
+                    maxZoom: 15,
+                    duration: 1.0
                 });
             } catch (error) {
                 console.error('Error fitting bounds:', error);
                 // Fallback: zoom to center of bounds
                 const center = bounds.getCenter();
-                map.flyTo({
-                    center: [center.lng, center.lat],
-                    zoom: 12,
-                    duration: 1000
+                map.flyTo(center, 12, {
+                    duration: 1.0
                 });
             }
         }
@@ -468,296 +455,137 @@ function applySearchFilter(category) {
     }
 }
 
-// Initialize 3D Mapbox map
+// Initialize Leaflet map (matching reference design)
 function initMap() {
     try {
-        // Check if Mapbox GL is loaded
-        if (typeof mapboxgl === 'undefined') {
-            console.error('Mapbox GL JS not loaded');
-            document.getElementById('map').innerHTML = '<div style="padding: 2rem; text-align: center; color: #fff; background: #000;"><h3>Map Loading Error</h3><p>Mapbox library failed to load. Please check your internet connection.</p></div>';
+        // Check if Leaflet is loaded
+        if (typeof L === 'undefined') {
+            console.error('Leaflet not loaded');
+            document.getElementById('map').innerHTML = '<div style="padding: 2rem; text-align: center; color: #fff; background: #000;"><h3>Map Loading Error</h3><p>Leaflet library failed to load. Please check your internet connection.</p></div>';
             return;
         }
 
         // Center on South Africa (Johannesburg)
-        // Mapbox uses [lng, lat] format
-        // Start with street map style in 3D (like Google Maps)
-        map = new mapboxgl.Map({
-            container: 'map',
-            style: 'mapbox://styles/mapbox/streets-v12', // Street map style like Google Maps
-            center: [28.0473, -26.2041], // [lng, lat]
-            zoom: 13, // Better zoom level for overview
-            pitch: 35, // Moderate 3D tilt for better visibility
-            bearing: 0,
-            antialias: true,
-            projection: 'globe' // Enable globe projection for 3D
+        // Leaflet uses [lat, lng] format
+        // Start with satellite view (matching reference)
+        map = L.map('map', {
+            center: [-26.2041, 28.0473], // [lat, lng] - Johannesburg
+            zoom: 15,
+            zoomControl: true
         });
         
-        // Add error handler
-        map.on('error', (e) => {
-            // Ignore analytics/events errors (usually blocked by ad blockers)
-            if (e.error && e.error.message) {
-                const errorMsg = e.error.message.toLowerCase();
-                if (errorMsg.includes('events') || errorMsg.includes('analytics') || errorMsg.includes('track')) {
-                    // These are non-critical analytics errors, ignore them
-                    return;
-                }
-                
-                // Log other errors but don't break the map
-                if (errorMsg.includes('token') || errorMsg.includes('401') || errorMsg.includes('403')) {
-                    console.warn('Mapbox token issue:', e.error.message);
-                    // Don't break the map, just warn
-                } else {
-                    console.warn('Map warning:', e.error.message);
-                }
-            }
+        // Initialize drawn items for annotations
+        drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+        
+        // Add satellite tile layer (Google Satellite style via OpenStreetMap)
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Leaflet | Google',
+            maxZoom: 19
         });
         
-        // Wait for map to load, then add 3D features
-        map.on('load', () => {
+        // Add street tile layer
+        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Leaflet',
+            maxZoom: 19
+        });
+        
+        // Start with satellite view (matching reference)
+        currentTileLayer = satelliteLayer;
+        satelliteLayer.addTo(map);
+        
+        // Store layers for switching
+        map.satelliteLayer = satelliteLayer;
+        map.streetLayer = streetLayer;
+        
+        // Wait for map to load
+        map.whenReady(() => {
             console.log('Map loaded successfully');
             
-            // Add 3D features for both street and satellite views (like Google Maps)
-            try {
-                // Add terrain source for 3D elevation
-                map.addSource('mapbox-dem', {
-                    'type': 'raster-dem',
-                    'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-                    'tileSize': 512,
-                    'maxzoom': 14
-                });
-                
-                // Set terrain with exaggeration for 3D effect
-                map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
-                
-                // Add 3D buildings layer (works with streets style)
-                const sources = map.getStyle().sources;
-                if (sources && sources.composite) {
-                    map.addLayer({
-                        'id': '3d-buildings',
-                        'source': 'composite',
-                        'source-layer': 'building',
-                        'filter': ['==', 'extrude', 'true'],
-                        'type': 'fill-extrusion',
-                        'minzoom': 14,
-                        'paint': {
-                            'fill-extrusion-color': [
-                                'interpolate',
-                                ['linear'],
-                                ['get', 'height'],
-                                0, '#d4d4d4',
-                                50, '#b0b0b0',
-                                100, '#8c8c8c'
-                            ],
-                            'fill-extrusion-height': [
-                                'interpolate',
-                                ['linear'],
-                                ['zoom'],
-                                14, 0,
-                                14.05, ['get', 'height']
-                            ],
-                            'fill-extrusion-base': [
-                                'interpolate',
-                                ['linear'],
-                                ['zoom'],
-                                14, 0,
-                                14.05, ['get', 'min_height']
-                            ],
-                            'fill-extrusion-opacity': 0.9
-                        }
-                    });
+            // Initialize Leaflet Draw for annotations
+            // This creates the built-in toolbar (no need for custom controls)
+            const drawOptions = {
+                position: 'topright',
+                draw: {
+                    marker: true,
+                    polyline: true,
+                    polygon: true,
+                    rectangle: true,
+                    circle: true,
+                    circlemarker: false
+                },
+                edit: {
+                    featureGroup: drawnItems,
+                    remove: true
                 }
-                
-                console.log('3D features added successfully');
-            } catch (error) {
-                console.warn('Could not add 3D features:', error);
-                // Map will still work but without 3D
-            }
+            };
+            
+            drawControl = new L.Control.Draw(drawOptions);
+            map.addControl(drawControl);
+            
+            // Leaflet Draw automatically shows its toolbar - no custom controls needed
+            
+            // Handle drawing events
+            map.on(L.Draw.Event.CREATED, function (e) {
+                const layer = e.layer;
+                drawnItems.addLayer(layer);
+                console.log('Annotation created:', e.layerType);
+            });
             
             // Load markers after map is ready
             loadMarkers();
         });
         
-        // Add navigation controls (zoom in/out, compass, pitch)
-        map.addControl(new mapboxgl.NavigationControl({
-            showCompass: true,
-            showZoom: true,
-            visualizePitch: true
-        }), 'top-right');
-        
-        // Add geolocate control (current location button)
-        map.addControl(new mapboxgl.GeolocateControl({
-            positionOptions: {
-                enableHighAccuracy: true
-            },
-            trackUserLocation: true,
-            showUserHeading: true
-        }), 'top-right');
-        
-        // Add fullscreen control
-        map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
-        
-        // Add style switcher (Street/Satellite toggle)
-        const styleSwitcher = document.createElement('div');
-        styleSwitcher.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
-        styleSwitcher.innerHTML = `
-            <button id="streetStyle" class="style-btn active" title="Street Map">🗺️</button>
-            <button id="satelliteStyle" class="style-btn" title="Satellite View">🛰️</button>
-        `;
-        styleSwitcher.style.marginTop = '10px';
-        
-        // Add style switcher to map first - create custom control properly
-        class StyleSwitcherControl {
-            onAdd(map) {
-                return styleSwitcher;
-            }
-            
-            onRemove() {
-                // Cleanup if needed
-            }
-        }
-        
-        map.addControl(new StyleSwitcherControl(), 'top-right');
-        
-        // Style switcher functionality - use elements from styleSwitcher container
-        const streetBtn = styleSwitcher.querySelector('#streetStyle');
-        const satelliteBtn = styleSwitcher.querySelector('#satelliteStyle');
-        
-        if (streetBtn) {
-            streetBtn.addEventListener('click', () => {
-                map.setStyle('mapbox://styles/mapbox/streets-v12');
-                map.setPitch(35); // Moderate 3D view for clarity
-                map.setBearing(0);
-                streetBtn.classList.add('active');
-                if (satelliteBtn) satelliteBtn.classList.remove('active');
+        // Add style switcher (Street/Satellite toggle) - custom Leaflet control
+        const StyleSwitcherControl = L.Control.extend({
+            onAdd: function(map) {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                container.innerHTML = `
+                    <button id="satelliteStyle" class="style-btn active" title="Satellite View">🛰️</button>
+                    <button id="streetStyle" class="style-btn" title="Street Map">🗺️</button>
+                `;
+                L.DomEvent.disableClickPropagation(container);
                 
-                // Re-add 3D features when switching to street view
-                map.once('style.load', () => {
-                    try {
-                        map.addSource('mapbox-dem', {
-                            'type': 'raster-dem',
-                            'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-                            'tileSize': 512,
-                            'maxzoom': 14
-                        });
-                        map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
-                        
-                        const sources = map.getStyle().sources;
-                        if (sources && sources.composite) {
-                            map.addLayer({
-                                'id': '3d-buildings',
-                                'source': 'composite',
-                                'source-layer': 'building',
-                                'filter': ['==', 'extrude', 'true'],
-                                'type': 'fill-extrusion',
-                                'minzoom': 14,
-                                'paint': {
-                                    'fill-extrusion-color': [
-                                        'interpolate',
-                                        ['linear'],
-                                        ['get', 'height'],
-                                        0, '#d4d4d4',
-                                        50, '#b0b0b0',
-                                        100, '#8c8c8c'
-                                    ],
-                                    'fill-extrusion-height': [
-                                        'interpolate',
-                                        ['linear'],
-                                        ['zoom'],
-                                        14, 0,
-                                        14.05, ['get', 'height']
-                                    ],
-                                    'fill-extrusion-base': [
-                                        'interpolate',
-                                        ['linear'],
-                                        ['zoom'],
-                                        14, 0,
-                                        14.05, ['get', 'min_height']
-                                    ],
-                                    'fill-extrusion-opacity': 0.9
-                                }
-                            });
-                        }
-                    } catch (error) {
-                        console.log('Could not add 3D features to street view:', error);
-                    }
-                });
-            });
-        }
-        
-        if (satelliteBtn) {
-            satelliteBtn.addEventListener('click', () => {
-                map.setStyle('mapbox://styles/mapbox/satellite-v9');
-                map.setPitch(60);
-                map.setBearing(-17.6);
-                satelliteBtn.classList.add('active');
-                if (streetBtn) streetBtn.classList.remove('active');
+                const streetBtn = container.querySelector('#streetStyle');
+                const satelliteBtn = container.querySelector('#satelliteStyle');
                 
-                // Re-add 3D features when switching to satellite
-                map.once('style.load', () => {
-                    try {
-                        // Add terrain
-                        map.addSource('mapbox-dem', {
-                            'type': 'raster-dem',
-                            'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-                            'tileSize': 512,
-                            'maxzoom': 14
-                        });
-                        map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
-                        
-                        // Add sky
-                        map.addLayer({
-                            'id': 'sky',
-                            'type': 'sky',
-                            'paint': {
-                                'sky-type': 'atmosphere',
-                                'sky-atmosphere-sun': [0.0, 0.0],
-                                'sky-atmosphere-sun-intensity': 15
-                            }
-                        });
-                        
-                        // Add 3D buildings if available
-                        const sources = map.getStyle().sources;
-                        if (sources && sources.composite) {
-                            map.addLayer({
-                                'id': '3d-buildings',
-                                'source': 'composite',
-                                'source-layer': 'building',
-                                'filter': ['==', 'extrude', 'true'],
-                                'type': 'fill-extrusion',
-                                'minzoom': 14,
-                                'paint': {
-                                    'fill-extrusion-color': [
-                                        'interpolate',
-                                        ['linear'],
-                                        ['get', 'height'],
-                                        0, '#00d4aa',
-                                        50, '#00a8cc',
-                                        100, '#4a90e2'
-                                    ],
-                                    'fill-extrusion-height': [
-                                        'interpolate',
-                                        ['linear'],
-                                        ['zoom'],
-                                        15, 0,
-                                        15.05, ['get', 'height']
-                                    ],
-                                    'fill-extrusion-base': [
-                                        'interpolate',
-                                        ['linear'],
-                                        ['zoom'],
-                                        15, 0,
-                                        15.05, ['get', 'min_height']
-                                    ],
-                                    'fill-extrusion-opacity': 0.7
-                                }
-                            });
-                        }
-                    } catch (error) {
-                        console.log('Could not add 3D features:', error);
-                    }
+                streetBtn.addEventListener('click', () => {
+                    map.removeLayer(currentTileLayer);
+                    currentTileLayer = map.streetLayer;
+                    currentTileLayer.addTo(map);
+                    streetBtn.classList.add('active');
+                    satelliteBtn.classList.remove('active');
                 });
-            });
-        }
+                
+                satelliteBtn.addEventListener('click', () => {
+                    map.removeLayer(currentTileLayer);
+                    currentTileLayer = map.satelliteLayer;
+                    currentTileLayer.addTo(map);
+                    satelliteBtn.classList.add('active');
+                    streetBtn.classList.remove('active');
+                });
+                
+                return container;
+            }
+        });
+        
+        map.addControl(new StyleSwitcherControl({ position: 'topright' }));
+        
+        // Add geolocate control
+        const geolocateControl = L.control({ position: 'topright' });
+        geolocateControl.onAdd = function(map) {
+            const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            const button = L.DomUtil.create('button', 'geolocate-btn');
+            button.innerHTML = '📍';
+            button.title = 'Get Current Location';
+            button.onclick = () => {
+                map.locate({ setView: true, maxZoom: 16 });
+            };
+            container.appendChild(button);
+            L.DomEvent.disableClickPropagation(container);
+            return container;
+        };
+        map.addControl(geolocateControl);
         
         // Add click handler for map - allow setting location by clicking
         map.on('click', (e) => {
@@ -769,15 +597,15 @@ function initMap() {
                 const locationStatus = document.getElementById('locationStatus');
                 
                 if (latInput && lngInput) {
-                    latInput.value = e.lngLat.lat; // Preserve full precision
-                    lngInput.value = e.lngLat.lng; // Preserve full precision
+                    latInput.value = e.latlng.lat; // Leaflet uses latlng
+                    lngInput.value = e.latlng.lng;
                     latInput.removeAttribute('readonly');
                     lngInput.removeAttribute('readonly');
                     
                     // Get address for clicked location
                     locationStatus.textContent = 'Getting address...';
                     locationStatus.style.color = '#2196f3';
-                    getLocationAddressCached(e.lngLat.lat, e.lngLat.lng).then(address => {
+                    getLocationAddressCached(e.latlng.lat, e.latlng.lng).then(address => {
                         locationStatus.textContent = `✓ Location set: ${address}`;
                         locationStatus.style.color = '#23d18b';
                     });
@@ -902,25 +730,28 @@ async function loadMarkersFromAPI(categoryFilter = 'all') {
             el.style.position = 'relative';
             el.style.transition = 'all 0.2s ease';
             
-            // Create marker with draggable disabled to prevent movement
-            const markerLngLat = [location.lng, location.lat];
-            const marker = new mapboxgl.Marker({
-                element: el,
-                anchor: 'center',
-                draggable: false  // Prevent marker from being dragged
-            })
-                .setLngLat(markerLngLat)
-                .addTo(map);
+            // Create Leaflet marker
+            const markerLatLng = [location.lat, location.lng];
+            const marker = L.marker(markerLatLng, {
+                icon: L.divIcon({
+                    className: 'custom-marker-icon',
+                    html: el.outerHTML,
+                    iconSize: [35, 35],
+                    iconAnchor: [17, 35],
+                    popupAnchor: [0, -35]
+                }),
+                draggable: false
+            });
             
             // Create popup with media info
-            const popup = new mapboxgl.Popup({ 
-                offset: 25,
+            const popup = L.popup({ 
+                offset: [0, -35],
                 closeOnClick: true,
                 closeButton: true
             })
-                .setHTML(createPopupContent(location.media, location.category));
+                .setContent(createPopupContent(location.media, location.category));
             
-            marker.setPopup(popup);
+            marker.bindPopup(popup).addTo(map);
             
             // Store location data in marker for reference
             marker._data = {
@@ -930,32 +761,18 @@ async function loadMarkersFromAPI(categoryFilter = 'all') {
             };
             
             // Show popup on hover (not just click)
-            el.addEventListener('mouseenter', () => {
+            marker.on('mouseover', () => {
                 el.style.transform = 'scale(1.2)';
                 el.style.transition = 'transform 0.2s';
                 // Open popup on hover
-                if (!marker.getPopup().isOpen()) {
-                    marker.togglePopup();
+                if (!marker.isPopupOpen()) {
+                    marker.openPopup();
                 }
             });
-            el.addEventListener('mouseleave', () => {
+            marker.on('mouseout', () => {
                 el.style.transform = 'scale(1)';
                 // Keep popup open on mouseleave - user can click to close
             });
-            
-            // Ensure marker stays at correct location - prevent any movement
-            // Lock the marker position
-            const lockPosition = () => {
-                const currentPos = marker.getLngLat();
-                // If marker has moved even slightly, reset it
-                if (Math.abs(currentPos.lng - location.lng) > 0.0001 || 
-                    Math.abs(currentPos.lat - location.lat) > 0.0001) {
-                    marker.setLngLat(markerLngLat);
-                }
-            };
-            
-            // Check position periodically to ensure it stays locked
-            setInterval(lockPosition, 500);
             
             markers.push(marker);
             allMarkers.push({
@@ -979,7 +796,7 @@ async function loadMarkersFromAPI(categoryFilter = 'all') {
 
 // Create popup content for markers
 function createPopupContent(mediaItems, category) {
-    const color = categoryColors[category] || categoryColors.other;
+    const color = assetTypeColors[category] || assetTypeColors.other;
     
     // Show first image as thumbnail if available
     const firstImage = mediaItems.find(m => m.file_type === 'image');
@@ -1118,23 +935,32 @@ function loadMarkersLegacy(categoryFilter = 'all') {
             </div>
         `;
         
-        // Create popup
-        const popup = new mapboxgl.Popup({ 
-            offset: 25,
+        // Create Leaflet popup
+        const popup = L.popup({ 
+            offset: [0, -35],
             closeButton: true,
             closeOnClick: false
         }).setHTML(popupContent);
         
         // Create marker (Mapbox uses [lng, lat] format)
-        const marker = new mapboxgl.Marker(el)
-            .setLngLat([location.lng, location.lat])
-            .setPopup(popup)
+        // Create Leaflet marker
+        const marker = L.marker([location.lat, location.lng], {
+            icon: L.divIcon({
+                className: 'custom-marker-icon',
+                html: el.outerHTML,
+                iconSize: [35, 35],
+                iconAnchor: [17, 35],
+                popupAnchor: [0, -35]
+            }),
+            draggable: false
+        })
+            .bindPopup(popup)
             .addTo(map);
         
         // Add hover functionality - show popup on hover
         el.addEventListener('mouseenter', () => {
-            if (!marker.getPopup().isOpen()) {
-                marker.togglePopup();
+            if (!marker.isPopupOpen()) {
+                marker.openPopup();
             }
         });
         
@@ -1207,12 +1033,8 @@ function updateSidebar(locations) {
         
         item.addEventListener('click', () => {
             // Mapbox uses flyTo with [lng, lat] format
-            map.flyTo({
-                center: [location.lng, location.lat],
-                zoom: 16,
-                pitch: 60,
-                bearing: -17.6,
-                duration: 2000
+            map.flyTo([location.lat, location.lng], 16, {
+                duration: 2.0
             });
             // Open popup for the marker at this location
             setTimeout(() => {
@@ -1222,7 +1044,7 @@ function updateSidebar(locations) {
                     m._data.category === location.category
                 );
                 if (marker) {
-                    marker.togglePopup();
+                    marker.openPopup();
                 }
             }, 2100);
             showGallery(location.lat, location.lng, location.category);
@@ -1708,10 +1530,19 @@ window.handleUpload = async function handleUpload(event) {
         return;
     }
     
-    const category = document.getElementById('category').value;
+    // Get new category fields
+    const organization = document.getElementById('organization').value;
+    const space = document.getElementById('space').value;
+    const spaceType = document.getElementById('spaceType').value;
+    const asset = document.getElementById('asset').value;
+    const assetType = document.getElementById('assetType').value; // This is the main category
+    const properties = document.getElementById('properties').value;
     const description = document.getElementById('description').value;
     let latitude = parseFloat(document.getElementById('latitude').value);
     let longitude = parseFloat(document.getElementById('longitude').value);
+    
+    // Use assetType as the main category (for backward compatibility with API)
+    const category = assetType;
     
     // For images: Try to extract EXIF geotags first
     if (file.type.startsWith('image/')) {
@@ -1768,8 +1599,17 @@ window.handleUpload = async function handleUpload(event) {
         // Create FormData for file upload
         const formData = new FormData();
         formData.append('media', file);
-        formData.append('category', category);
-        formData.append('description', description || '');
+        formData.append('category', category); // assetType
+        // Store additional metadata in description
+        const fullDescription = [
+            description,
+            organization ? `Organization: ${organization}` : '',
+            space ? `Space: ${space}` : '',
+            spaceType ? `Space Type: ${spaceType}` : '',
+            asset ? `Asset: ${asset}` : '',
+            properties ? `Properties: ${properties}` : ''
+        ].filter(Boolean).join(' | ');
+        formData.append('description', fullDescription || '');
         
         // Ensure coordinates are strings with full precision
         formData.append('latitude', latitude.toString());
@@ -1804,22 +1644,20 @@ window.handleUpload = async function handleUpload(event) {
                 // Center map on the new marker location
                 if (data.location && data.location.latitude && data.location.longitude) {
                     console.log('🗺️ Centering map on new marker:', data.location);
-                    map.flyTo({
-                        center: [data.location.longitude, data.location.latitude],
-                        zoom: 15,
-                        duration: 1500
+                    map.flyTo([data.location.latitude, data.location.longitude], 15, {
+                        duration: 1.5
                     });
                     
                     // After animation, open the popup for the new marker
                     setTimeout(() => {
                         const newMarker = markers.find(m => {
-                            const markerLngLat = m.getLngLat();
+                            const markerLatLng = m.getLatLng();
                             const tolerance = 0.0001; // Small tolerance for floating point comparison
-                            return Math.abs(markerLngLat.lng - data.location.longitude) < tolerance &&
-                                   Math.abs(markerLngLat.lat - data.location.latitude) < tolerance;
+                            return Math.abs(markerLatLng.lng - data.location.longitude) < tolerance &&
+                                   Math.abs(markerLatLng.lat - data.location.latitude) < tolerance;
                         });
                         if (newMarker) {
-                            newMarker.togglePopup();
+                            newMarker.openPopup();
                         }
                     }, 1600);
                 }
@@ -2803,12 +2641,67 @@ window.closeGalleryModal = function closeGalleryModal() {
 function getCategoryName(category) {
     const names = {
         'solar': 'Solar Panels',
-        'unused': 'Unused Assets',
-        'building': 'Buildings',
         'equipment': 'Equipment',
+        'building': 'Buildings',
+        'infrastructure': 'Infrastructure',
         'other': 'Other'
     };
     return names[category] || category;
+}
+
+// Annotation functions - Leaflet Draw handles these automatically via its toolbar
+// No custom functions needed - users click the toolbar buttons
+
+function show360Views() {
+    alert('360° Views feature coming soon!');
+}
+
+function showDroneFootage() {
+    // Open Google Drive folder in new tab
+    window.open('https://drive.google.com/drive/folders/145UnvvoadbqJjg7VjREnkoo-QOGF9gUg', '_blank');
+}
+
+// Header dropdown handlers
+function handleOrganizationChange() {
+    const org = document.getElementById('organizationSelect').value;
+    console.log('Organization changed:', org);
+    // Filter markers by organization
+    applySearchFilter('all'); // Reset filter for now
+}
+
+function handleSpaceChange() {
+    const space = document.getElementById('spaceSelect').value;
+    console.log('Space changed:', space);
+}
+
+function handleSpaceTypeChange() {
+    const spaceType = document.getElementById('spaceTypeSelect').value;
+    console.log('Space Type changed:', spaceType);
+}
+
+function handleAssetChange() {
+    const asset = document.getElementById('assetSelect').value;
+    console.log('Asset changed:', asset);
+}
+
+function handleAssetTypeChange() {
+    const assetType = document.getElementById('assetTypeSelect').value;
+    console.log('Asset Type changed:', assetType);
+    // Filter markers by asset type
+    if (assetType) {
+        applySearchFilter(assetType);
+    } else {
+        applySearchFilter('all');
+    }
+}
+
+function handlePropertiesChange() {
+    const properties = document.getElementById('propertiesSelect').value;
+    console.log('Properties changed:', properties);
+}
+
+function handleExport() {
+    alert('Export feature coming soon!');
 }
 
 // Export data function is in map-db.js

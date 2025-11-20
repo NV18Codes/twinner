@@ -7,12 +7,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css" rel="stylesheet">
-    <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Draw for annotations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
     <!-- Tesseract.js for OCR to extract coordinates from image text -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Supabase Configuration - Must be loaded before map-app.js -->
+    <script src="supabase-config.js"></script>
     <!-- API Configuration - Must be loaded before map-app.js -->
     <script src="config.js"></script>
     <link rel="stylesheet" href="map-styles.css">
@@ -26,17 +37,45 @@
                 <div class="logo-text" style="display: none;">TWINNER</div>
             </div>
             <div class="header-controls">
-                <!-- Search Bar -->
-                <div class="search-container">
-                    <select id="searchCategory" class="search-select" onchange="handleSearch()">
-                        <option value="all">All Categories</option>
-                        <option value="solar">🔶 Solar Panels</option>
-                        <option value="unused">🔷 Unused Assets</option>
-                        <option value="building">🔵 Buildings</option>
-                        <option value="equipment">🟣 Equipment</option>
-                        <option value="other">⚫ Other</option>
+                <!-- Single Unified Dropdown -->
+                <div class="header-dropdown">
+                    <label for="unifiedSelect">Filter</label>
+                    <select id="unifiedSelect" class="header-select unified-select" onchange="handleUnifiedFilterChange()">
+                        <option value="">All</option>
+                        <optgroup label="Organizations">
+                            <option value="org:busby">Busby Sawmills</option>
+                            <option value="org:org1">Organization 1</option>
+                            <option value="org:org2">Organization 2</option>
+                        </optgroup>
+                        <optgroup label="Spaces">
+                            <option value="space:site-overview">Site Overview</option>
+                            <option value="space:building-a">Building A</option>
+                            <option value="space:building-b">Building B</option>
+                        </optgroup>
+                        <optgroup label="Space Types">
+                            <option value="spaceType:industrial">Industrial</option>
+                            <option value="spaceType:office">Office</option>
+                            <option value="spaceType:warehouse">Warehouse</option>
+                        </optgroup>
+                        <optgroup label="Assets">
+                            <option value="asset:asset1">Asset 1</option>
+                            <option value="asset:asset2">Asset 2</option>
+                        </optgroup>
+                        <optgroup label="Asset Types">
+                            <option value="assetType:solar">Solar Panels</option>
+                            <option value="assetType:equipment">Equipment</option>
+                            <option value="assetType:building">Buildings</option>
+                            <option value="assetType:infrastructure">Infrastructure</option>
+                        </optgroup>
+                        <optgroup label="Properties">
+                            <option value="properties:active">Active</option>
+                            <option value="properties:inactive">Inactive</option>
+                            <option value="properties:maintenance">Maintenance</option>
+                        </optgroup>
                     </select>
                 </div>
+                
+                <button class="btn-export" id="exportBtn" onclick="handleExport()">Export</button>
                 <button class="btn-signin" id="signInBtn" onclick="showLoginModal()">Sign In</button>
                 <button class="btn-signup" id="signUpBtn" onclick="showSignUpModal()">Sign Up</button>
                 <button class="btn-demo" id="requestDemoBtn" onclick="showDemoModal()">Request a Demo</button>
@@ -49,6 +88,12 @@
     <!-- Main Map Container -->
     <div class="map-container">
         <div id="map" class="map"></div>
+        
+        <!-- Map Controls (Bottom Left) -->
+        <div class="map-controls-bottom">
+            <button class="map-control-btn" onclick="show360Views()">360° VIEWS</button>
+            <button class="map-control-btn" onclick="showDroneFootage()">DRONE FOOTAGE</button>
+        </div>
         
         <!-- 3D Virtual Tour View (hidden by default) -->
         <div id="virtualTourView" class="virtual-tour-view hidden">
@@ -166,13 +211,57 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="category">Category</label>
-                        <select id="category" required>
+                        <label for="organization">Organization</label>
+                        <select id="organization" required>
+                            <option value="">Select Organization</option>
+                            <option value="busby">Busby Sawmills</option>
+                            <option value="org1">Organization 1</option>
+                            <option value="org2">Organization 2</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="space">Space</label>
+                        <select id="space" required>
+                            <option value="">Select Space</option>
+                            <option value="site-overview">Site Overview</option>
+                            <option value="building-a">Building A</option>
+                            <option value="building-b">Building B</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="spaceType">Space Type</label>
+                        <select id="spaceType">
+                            <option value="">Select Space Type</option>
+                            <option value="industrial">Industrial</option>
+                            <option value="office">Office</option>
+                            <option value="warehouse">Warehouse</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="asset">Asset</label>
+                        <select id="asset">
+                            <option value="">Select Asset</option>
+                            <option value="asset1">Asset 1</option>
+                            <option value="asset2">Asset 2</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="assetType">Asset Type</label>
+                        <select id="assetType" required>
+                            <option value="">Select Asset Type</option>
                             <option value="solar">Solar Panels</option>
-                            <option value="unused">Unused Assets</option>
-                            <option value="building">Buildings</option>
                             <option value="equipment">Equipment</option>
-                            <option value="other">Other</option>
+                            <option value="building">Buildings</option>
+                            <option value="infrastructure">Infrastructure</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="properties">Properties</label>
+                        <select id="properties">
+                            <option value="">Select Properties</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="maintenance">Maintenance</option>
                         </select>
                     </div>
                     <div class="form-group">
