@@ -1,4 +1,6 @@
-// Map Application Logic
+// Map Application Logic - Using Leaflet (NOT Mapbox)
+// This file uses Leaflet, not Mapbox. Any mapboxgl references are from cached files.
+
 let map = null;
 let markers = [];
 let sidebarOpen = false;
