@@ -1530,19 +1530,29 @@ window.handleUpload = async function handleUpload(event) {
         return;
     }
     
-    // Get new category fields
-    const organization = document.getElementById('organization').value;
-    const space = document.getElementById('space').value;
-    const spaceType = document.getElementById('spaceType').value;
-    const asset = document.getElementById('asset').value;
-    const assetType = document.getElementById('assetType').value; // This is the main category
-    const properties = document.getElementById('properties').value;
+    // Get category from unified dropdown
+    const uploadCategory = document.getElementById('uploadCategory').value;
     const description = document.getElementById('description').value;
     let latitude = parseFloat(document.getElementById('latitude').value);
     let longitude = parseFloat(document.getElementById('longitude').value);
     
-    // Use assetType as the main category (for backward compatibility with API)
-    const category = assetType;
+    if (!uploadCategory) {
+        alert('Please select a category');
+        return;
+    }
+    
+    // Parse the category value (format: "type:value")
+    const [categoryType, categoryValue] = uploadCategory.split(':');
+    
+    // Map to legacy category for API compatibility
+    // Asset Types are the main categories for backward compatibility
+    let category = 'other'; // Default
+    if (categoryType === 'assetType') {
+        category = categoryValue; // solar, equipment, building, infrastructure
+    } else if (categoryType === 'org' || categoryType === 'space' || categoryType === 'spaceType' || categoryType === 'asset' || categoryType === 'properties') {
+        // For other types, default to 'other' or use the first asset type
+        category = 'other';
+    }
     
     // For images: Try to extract EXIF geotags first
     if (file.type.startsWith('image/')) {
@@ -1599,17 +1609,10 @@ window.handleUpload = async function handleUpload(event) {
         // Create FormData for file upload
         const formData = new FormData();
         formData.append('media', file);
-        formData.append('category', category); // assetType
-        // Store additional metadata in description
-        const fullDescription = [
-            description,
-            organization ? `Organization: ${organization}` : '',
-            space ? `Space: ${space}` : '',
-            spaceType ? `Space Type: ${spaceType}` : '',
-            asset ? `Asset: ${asset}` : '',
-            properties ? `Properties: ${properties}` : ''
-        ].filter(Boolean).join(' | ');
-        formData.append('description', fullDescription || '');
+        formData.append('category', category);
+        // Store the full category selection in description for reference
+        const fullDescription = description ? `${description} | Category: ${uploadCategory}` : `Category: ${uploadCategory}`;
+        formData.append('description', fullDescription);
         
         // Ensure coordinates are strings with full precision
         formData.append('latitude', latitude.toString());
@@ -2476,7 +2479,7 @@ async function getLocationAddress(lat, lng) {
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
             {
                 headers: {
-                    'User-Agent': 'TWINNER-MapApp/1.0' // Required by Nominatim
+                    'User-Agent': 'TWINNIR-MapApp/1.0' // Required by Nominatim
                 }
             }
         );

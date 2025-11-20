@@ -5,9 +5,23 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const ExifImage = require('exif').ExifImage;
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize Supabase client
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ygdgseszosvavgvvcfkj.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnZGdzZXN6b3N2YXZndnZjZmtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1NTk4MjAsImV4cCI6MjA3OTEzNTgyMH0.JZcAp9Wip09ZjDYoWiLMSBaMhxinSgp-HqWtP1qKBZ0';
+
+let supabase = null;
+try {
+    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase client initialized');
+} catch (error) {
+    console.error('❌ Failed to initialize Supabase:', error.message);
+    console.warn('⚠️ Continuing with SQLite only');
+}
 
 // Middleware
 // CORS configuration - handle preflight and actual requests
@@ -54,7 +68,7 @@ app.use('/.well-known', express.static(path.join(__dirname, 'public', '.well-kno
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'TWINNER API is running' });
+    res.json({ status: 'ok', message: 'TWINNIR API is running' });
 });
 
 // Configure multer for file uploads
@@ -399,20 +413,172 @@ app.post('/api/media/upload', verifyToken, upload.single('media'), async (req, r
         // Convert file to base64
         const fileData = fileToBase64(file.path);
         const fileType = isImage ? 'image' : 'video';
+        
+        // Parse description for additional metadata
+        const descriptionParts = (description || '').split(' | ');
+        let cleanDescription = description;
+        
+        // Extract actual description (first part without colon)
+        descriptionParts.forEach(part => {
+            if (!part.includes(':')) {
+                cleanDescription = part.trim();
+            }
+        });
 
-        console.log('Inserting media into database:', {
+        console.log('📤 Inserting media into database:', {
             filename: file.originalname,
             category,
             latitude,
             longitude,
-            user_id: req.user.id
+            user_id: req.user.id,
+            file_type: fileType
         });
 
-        // Insert media
+        // Try Supabase first, fallback to SQLite
+        if (supabase) {
+            try {
+                // Map category to asset type name
+                const assetTypeName = category === 'solar' ? 'Solar Panels' : 
+                                     category === 'equipment' ? 'Equipment' :
+                                     category === 'building' ? 'Buildings' :
+                                     category === 'infrastructure' ? 'Infrastructure' : 'Other';
+
+                // Get asset_type_id from category name
+                const { data: assetTypeData } = await supabase
+                    .from('asset_types')
+                    .select('id')
+                    .eq('name', assetTypeName)
+                    .single();
+
+                // Get user UUID from Supabase
+                // Since SQLite uses integer IDs and Supabase uses UUIDs, sync users
+                let userId = null;
+                const token = req.headers.authorization?.replace('Bearer ', '') || '';
+                
+                // Get user email from SQLite session (promisified)
+                const sqliteUser = await new Promise((resolve, reject) => {
+                    db.get(
+                        'SELECT u.email, u.id FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.session_token = ? AND s.expires_at > datetime("now")',
+                        [token],
+                        (err, user) => {
+                            if (err) reject(err);
+                            else resolve(user);
+                        }
+                    );
+                });
+                
+                if (sqliteUser) {
+                    // Try to find user in Supabase by email
+                    const { data: supabaseUser } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('email', sqliteUser.email)
+                        .single();
+                    
+                    if (supabaseUser) {
+                        userId = supabaseUser.id; // Use UUID from Supabase
+                    } else {
+                        // User doesn't exist in Supabase, create them
+                        const { data: newUser, error: createError } = await supabase
+                            .from('users')
+                            .insert({
+                                email: sqliteUser.email,
+                                password_hash: 'synced_from_sqlite' // Placeholder
+                            })
+                            .select()
+                            .single();
+                        
+                        if (newUser && !createError) {
+                            userId = newUser.id;
+                            console.log('✅ Created user in Supabase:', newUser.id);
+                        } else {
+                            console.warn('⚠️ Could not create user in Supabase:', createError);
+                            // For now, skip Supabase and use SQLite
+                            throw new Error('User sync failed');
+                        }
+                    }
+                } else {
+                    // No user found, skip Supabase
+                    throw new Error('User not found');
+                }
+
+                // Insert into Supabase
+                const { data: mediaData, error: supabaseError } = await supabase
+                    .from('media')
+                    .insert({
+                        user_id: userId,
+                        filename: file.originalname,
+                        file_data: fileData,
+                        file_type: fileType,
+                        latitude: parseFloat(latitude),
+                        longitude: parseFloat(longitude),
+                        category: category, // Legacy field
+                        asset_type_id: assetTypeData?.id || null,
+                        description: cleanDescription || null,
+                        mime_type: file.mimetype,
+                        file_size: file.size
+                    })
+                    .select()
+                    .single();
+
+                if (supabaseError) {
+                    console.error('❌ Supabase insert error:', supabaseError);
+                    throw supabaseError;
+                }
+
+                console.log('✅ Media inserted into Supabase successfully, ID:', mediaData.id);
+
+                // Update location count in Supabase
+                const { data: existingLocation } = await supabase
+                    .from('locations')
+                    .select('*')
+                    .eq('latitude', parseFloat(latitude))
+                    .eq('longitude', parseFloat(longitude))
+                    .eq('asset_type_id', assetTypeData?.id || null)
+                    .single();
+
+                if (existingLocation) {
+                    await supabase
+                        .from('locations')
+                        .update({ media_count: existingLocation.media_count + 1 })
+                        .eq('id', existingLocation.id);
+                } else {
+                    await supabase
+                        .from('locations')
+                        .insert({
+                            latitude: parseFloat(latitude),
+                            longitude: parseFloat(longitude),
+                            asset_type_id: assetTypeData?.id || null,
+                            category: category,
+                            media_count: 1
+                        });
+                }
+
+                // Delete temp file
+                fs.unlinkSync(file.path);
+
+                console.log('✅ Upload complete - returning success response');
+                res.json({
+                    message: 'Media uploaded successfully',
+                    media_id: mediaData.id,
+                    location: { 
+                        latitude: parseFloat(latitude), 
+                        longitude: parseFloat(longitude) 
+                    }
+                });
+                return;
+            } catch (supabaseErr) {
+                console.error('❌ Supabase error, falling back to SQLite:', supabaseErr);
+                // Fall through to SQLite
+            }
+        }
+
+        // Fallback to SQLite
+        console.log('📦 Using SQLite fallback');
         db.run(
             `INSERT INTO media (filename, file_data, latitude, longitude, category, description, file_type, user_id)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [file.originalname, fileData, latitude, longitude, category, description || null, fileType, req.user.id],
+            [file.originalname, fileData, latitude, longitude, category, cleanDescription || null, fileType, req.user.id],
             function(err) {
                 if (err) {
                     console.error('Database insert error:', err);
@@ -420,8 +586,7 @@ app.post('/api/media/upload', verifyToken, upload.single('media'), async (req, r
                     return res.status(500).json({ error: err.message });
                 }
 
-                console.log('✅ Media inserted successfully, ID:', this.lastID);
-                console.log('📊 Database now has media with ID:', this.lastID);
+                console.log('✅ Media inserted into SQLite successfully, ID:', this.lastID);
 
                 // Update location count
                 db.run(
@@ -442,7 +607,6 @@ app.post('/api/media/upload', verifyToken, upload.single('media'), async (req, r
                 fs.unlinkSync(file.path);
 
                 console.log('✅ Upload complete - returning success response');
-                console.log('📍 Returning location:', { latitude, longitude });
                 res.json({
                     message: 'Media uploaded successfully',
                     media_id: this.lastID,
@@ -490,7 +654,36 @@ app.get('/api/media', (req, res) => {
 });
 
 // Helper function to get all public media
-function getPublicMedia(category, res) {
+async function getPublicMedia(category, res) {
+    // Try Supabase first
+    if (supabase) {
+        try {
+            let query = supabase
+                .from('media')
+                .select('*');
+
+            if (category && category !== 'all') {
+                query = query.eq('category', category);
+            }
+
+            query = query.order('upload_date', { ascending: false });
+
+            const { data: rows, error } = await query;
+
+            if (error) {
+                console.error('Supabase error:', error);
+                throw error;
+            }
+
+            console.log(`✅ Returning ${rows.length} media items from Supabase (public/all)`);
+            return res.json({ media: rows || [] });
+        } catch (supabaseErr) {
+            console.error('❌ Supabase error, falling back to SQLite:', supabaseErr);
+            // Fall through to SQLite
+        }
+    }
+
+    // Fallback to SQLite
     let query = 'SELECT * FROM media';
     const params = [];
 
@@ -509,14 +702,14 @@ function getPublicMedia(category, res) {
             return res.status(500).json({ error: err.message });
         }
 
-        console.log(`Returning ${rows.length} media items (public/all)`);
+        console.log(`Returning ${rows.length} media items from SQLite (public/all)`);
         res.json({ media: rows });
     });
 }
 
 // Get media by location
 // ALL users (authenticated or not) see ALL media at the location from the shared database
-app.get('/api/media/location', (req, res) => {
+app.get('/api/media/location', async (req, res) => {
     const { lat, lng, category } = req.query;
     const token = req.headers.authorization?.replace('Bearer ', '') || req.query.token;
 
@@ -526,28 +719,73 @@ app.get('/api/media/location', (req, res) => {
 
     // Check if user is authenticated (for logging purposes only)
     if (token) {
-        db.get(
-            'SELECT s.*, u.email FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.session_token = ? AND s.expires_at > datetime("now")',
-            [token],
-            (err, session) => {
-                if (session) {
-                    console.log(`GET /api/media/location - Authenticated user: ${session.email} (ID: ${session.user_id}) - Showing ALL media at location`);
-                } else {
-                    console.log('GET /api/media/location - Public access (no valid token) - Showing ALL media at location');
-                }
-                // Always show all media at this location regardless of authentication
-                getPublicMediaByLocation(lat, lng, category, res);
+        if (supabase) {
+            const { data: session } = await supabase
+                .from('sessions')
+                .select('*, users(email)')
+                .eq('session_token', token)
+                .gt('expires_at', new Date().toISOString())
+                .single();
+            
+            if (session) {
+                console.log(`GET /api/media/location - Authenticated user: ${session.users?.email} (ID: ${session.user_id}) - Showing ALL media at location`);
+            } else {
+                console.log('GET /api/media/location - Public access (no valid token) - Showing ALL media at location');
             }
-        );
+        } else {
+            db.get(
+                'SELECT s.*, u.email FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.session_token = ? AND s.expires_at > datetime("now")',
+                [token],
+                (err, session) => {
+                    if (session) {
+                        console.log(`GET /api/media/location - Authenticated user: ${session.email} (ID: ${session.user_id}) - Showing ALL media at location`);
+                    } else {
+                        console.log('GET /api/media/location - Public access (no valid token) - Showing ALL media at location');
+                    }
+                }
+            );
+        }
     } else {
         console.log('GET /api/media/location - Public access (no token) - Showing ALL media at location');
-        // Show all media at this location (public)
-        getPublicMediaByLocation(lat, lng, category, res);
     }
+    
+    // Always show all media at this location regardless of authentication
+    await getPublicMediaByLocation(lat, lng, category, res);
 });
 
 // Helper function to get all public media by location
-function getPublicMediaByLocation(lat, lng, category, res) {
+async function getPublicMediaByLocation(lat, lng, category, res) {
+    // Try Supabase first
+    if (supabase) {
+        try {
+            let query = supabase
+                .from('media')
+                .select('*')
+                .gte('latitude', parseFloat(lat) - 0.001)
+                .lte('latitude', parseFloat(lat) + 0.001)
+                .gte('longitude', parseFloat(lng) - 0.001)
+                .lte('longitude', parseFloat(lng) + 0.001);
+
+            if (category && category !== 'all') {
+                query = query.eq('category', category);
+            }
+
+            const { data: rows, error } = await query;
+
+            if (error) {
+                console.error('Supabase error:', error);
+                throw error;
+            }
+
+            console.log(`✅ Returning ${rows.length} media items from Supabase at location`);
+            return res.json({ media: rows || [] });
+        } catch (supabaseErr) {
+            console.error('❌ Supabase error, falling back to SQLite:', supabaseErr);
+            // Fall through to SQLite
+        }
+    }
+
+    // Fallback to SQLite
     let query = `SELECT * FROM media WHERE 
                  ABS(latitude - ?) < 0.001 AND ABS(longitude - ?) < 0.001`;
     const params = [parseFloat(lat), parseFloat(lng)];
@@ -562,6 +800,7 @@ function getPublicMediaByLocation(lat, lng, category, res) {
             return res.status(500).json({ error: err.message });
         }
 
+        console.log(`Returning ${rows.length} media items from SQLite at location`);
         res.json({ media: rows });
     });
 }
@@ -645,7 +884,7 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`🚀 TWINNER API Server running on http://localhost:${PORT}`);
+    console.log(`🚀 TWINNIR API Server running on http://localhost:${PORT}`);
     console.log(`📊 Health check: http://localhost:${PORT}/health`);
     console.log(`📝 API Documentation: See README_API.md`);
 });

@@ -1,4 +1,4 @@
-# TWINNER - Intelligent Digital Twins Platform
+# TWINNIR - Intelligent Digital Twins Platform
 
 A modern web application for digital twin visualization and management, specifically designed for South African clients.
 
