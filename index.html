@@ -260,8 +260,9 @@
             max-width: 1400px;
             margin: 0 auto;
             display: flex;
-            align-items: flex-start;
-            gap: 3rem;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
             padding-bottom: 2rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
@@ -320,6 +321,7 @@
             gap: 2rem;
             flex-wrap: wrap;
             align-items: center;
+            flex: 1;
         }
 
         .footer-contact-item {
@@ -335,11 +337,10 @@
         }
 
         .footeropyright {
-            max-width: 1400px;
-            margin: 1rem auto 0;
-            text-align: right;
             color: rgba(255, 255, 255, 0.6);
             font-size: 0.85rem;
+            white-space: nowrap;
+            margin-left: auto;
         }
 
         /* Modal Styles */
@@ -441,13 +442,22 @@
             
             .footer-content {
                 flex-direction: column;
-                gap: 2rem;
+                gap: 1.5rem;
+                align-items: flex-start;
             }
             
             .footer-contact {
                 flex-direction: column;
                 gap: 1rem;
                 align-items: flex-start;
+                flex: 1;
+                width: 100%;
+            }
+            
+            .footeropyright {
+                margin-left: 0;
+                width: 100%;
+                text-align: left;
             }
             
             .banner-text h3 {
@@ -533,10 +543,9 @@
                     <span>Johannesburg, South Africa</span>
                 </span>
             </div>
-        </div>
-
-        <div class="footeropyright">
-            Copyright © 2025 Twinnir - All Rights Reserved.
+            <div class="footeropyright">
+                Copyright © 2025 Twinnir - All Rights Reserved.
+            </div>
         </div>
     </footer>
 

@@ -116,19 +116,22 @@ body {
 }
 
 .btn-export {
-    background: #23d18b;
-    color: #ffffff;
-    border: none;
+    background: transparent;
+    border: 2px solid #23d18b;
+    color: #23d18b;
     padding: 0.5rem 1.5rem;
     border-radius: 6px;
     font-size: 0.9rem;
     cursor: pointer;
-    transition: background 0.2s;
+    text-decoration: none;
+    transition: all 0.2s;
     font-weight: 600;
+    display: inline-block;
 }
 
 .btn-export:hover {
-    background: #2ecc71;
+    background: #23d18b;
+    color: #ffffff;
 }
 
 /* Map Controls Bottom */
