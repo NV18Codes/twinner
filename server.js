@@ -13,11 +13,14 @@ const PORT = process.env.PORT || 3000;
 // Initialize Supabase client
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ygdgseszosvavgvvcfkj.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnZGdzZXN6b3N2YXZndnZjZmtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1NTk4MjAsImV4cCI6MjA3OTEzNTgyMH0.JZcAp9Wip09ZjDYoWiLMSBaMhxinSgp-HqWtP1qKBZ0';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnZGdzZXN6b3N2YXZndnZjZmtqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzU1OTgyMCwiZXhwIjoyMDc5MTM1ODIwfQ.xYTs2b8dvsLvRCP2y76XKajQ8V_Bp7yqQv08FXvlMMY';
 
 let supabase = null;
+let supabaseAdmin = null; // Admin client with service role key
 try {
     supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('✅ Supabase client initialized');
+    supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    console.log('✅ Supabase client initialized (anon + service role)');
 } catch (error) {
     console.error('❌ Failed to initialize Supabase:', error.message);
     console.warn('⚠️ Continuing with SQLite only');
@@ -435,7 +438,7 @@ app.post('/api/media/upload', verifyToken, upload.single('media'), async (req, r
         });
 
         // Try Supabase first, fallback to SQLite
-        if (supabase) {
+        if (supabase && supabaseAdmin) {
             try {
                 // Map category to asset type name
                 const assetTypeName = category === 'solar' ? 'Solar Panels' : 
@@ -443,8 +446,8 @@ app.post('/api/media/upload', verifyToken, upload.single('media'), async (req, r
                                      category === 'building' ? 'Buildings' :
                                      category === 'infrastructure' ? 'Infrastructure' : 'Other';
 
-                // Get asset_type_id from category name
-                const { data: assetTypeData } = await supabase
+                // Get asset_type_id from category name (use admin client for better permissions)
+                const { data: assetTypeData } = await supabaseAdmin
                     .from('asset_types')
                     .select('id')
                     .eq('name', assetTypeName)
@@ -468,8 +471,8 @@ app.post('/api/media/upload', verifyToken, upload.single('media'), async (req, r
                 });
                 
                 if (sqliteUser) {
-                    // Try to find user in Supabase by email
-                    const { data: supabaseUser } = await supabase
+                    // Try to find user in Supabase by email (use admin client)
+                    const { data: supabaseUser } = await supabaseAdmin
                         .from('users')
                         .select('id')
                         .eq('email', sqliteUser.email)
@@ -478,8 +481,8 @@ app.post('/api/media/upload', verifyToken, upload.single('media'), async (req, r
                     if (supabaseUser) {
                         userId = supabaseUser.id; // Use UUID from Supabase
                     } else {
-                        // User doesn't exist in Supabase, create them
-                        const { data: newUser, error: createError } = await supabase
+                        // User doesn't exist in Supabase, create them (use admin client)
+                        const { data: newUser, error: createError } = await supabaseAdmin
                             .from('users')
                             .insert({
                                 email: sqliteUser.email,
@@ -502,8 +505,8 @@ app.post('/api/media/upload', verifyToken, upload.single('media'), async (req, r
                     throw new Error('User not found');
                 }
 
-                // Insert into Supabase
-                const { data: mediaData, error: supabaseError } = await supabase
+                // Insert into Supabase (use admin client for insert permissions)
+                const { data: mediaData, error: supabaseError } = await supabaseAdmin
                     .from('media')
                     .insert({
                         user_id: userId,
@@ -528,8 +531,8 @@ app.post('/api/media/upload', verifyToken, upload.single('media'), async (req, r
 
                 console.log('✅ Media inserted into Supabase successfully, ID:', mediaData.id);
 
-                // Update location count in Supabase
-                const { data: existingLocation } = await supabase
+                // Update location count in Supabase (use admin client)
+                const { data: existingLocation } = await supabaseAdmin
                     .from('locations')
                     .select('*')
                     .eq('latitude', parseFloat(latitude))
@@ -538,12 +541,12 @@ app.post('/api/media/upload', verifyToken, upload.single('media'), async (req, r
                     .single();
 
                 if (existingLocation) {
-                    await supabase
+                    await supabaseAdmin
                         .from('locations')
                         .update({ media_count: existingLocation.media_count + 1 })
                         .eq('id', existingLocation.id);
                 } else {
-                    await supabase
+                    await supabaseAdmin
                         .from('locations')
                         .insert({
                             latitude: parseFloat(latitude),
@@ -755,16 +758,16 @@ app.get('/api/media/location', async (req, res) => {
 
 // Helper function to get all public media by location
 async function getPublicMediaByLocation(lat, lng, category, res) {
-    // Try Supabase first
-    if (supabase) {
-        try {
-            let query = supabase
-                .from('media')
-                .select('*')
-                .gte('latitude', parseFloat(lat) - 0.001)
-                .lte('latitude', parseFloat(lat) + 0.001)
-                .gte('longitude', parseFloat(lng) - 0.001)
-                .lte('longitude', parseFloat(lng) + 0.001);
+        // Try Supabase first
+        if (supabase && supabaseAdmin) {
+            try {
+                let query = supabaseAdmin
+                    .from('media')
+                    .select('*')
+                    .gte('latitude', parseFloat(lat) - 0.001)
+                    .lte('latitude', parseFloat(lat) + 0.001)
+                    .gte('longitude', parseFloat(lng) - 0.001)
+                    .lte('longitude', parseFloat(lng) + 0.001);
 
             if (category && category !== 'all') {
                 query = query.eq('category', category);

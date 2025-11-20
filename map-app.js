@@ -695,7 +695,7 @@ async function loadMarkersFromAPI(categoryFilter = 'all') {
         
         // Create markers for each location
         locations.forEach((location, index) => {
-            const color = categoryColors[location.category] || categoryColors.other;
+            const color = assetTypeColors[location.category] || assetTypeColors.other;
             
             // Validate coordinates
             if (isNaN(location.lat) || isNaN(location.lng)) {
@@ -875,7 +875,7 @@ function loadMarkersLegacy(categoryFilter = 'all') {
     }
     
     locations.forEach(location => {
-        const color = categoryColors[location.category] || categoryColors.other;
+        const color = assetTypeColors[location.category] || assetTypeColors.other;
         const media = getMediaByLocation(location.lat, location.lng);
         
         // Create custom marker element
@@ -1642,7 +1642,15 @@ window.handleUpload = async function handleUpload(event) {
             
             // Reload markers from API (show all categories)
             try {
+                // Clear existing markers first
+                markers.forEach(marker => marker.remove());
+                markers = [];
+                allMarkers = [];
+                
+                // Reload all markers
                 await loadMarkersFromAPI('all');
+                
+                console.log(`✅ Reloaded ${markers.length} markers after upload`);
                 
                 // Center map on the new marker location
                 if (data.location && data.location.latitude && data.location.longitude) {
@@ -1651,25 +1659,28 @@ window.handleUpload = async function handleUpload(event) {
                         duration: 1.5
                     });
                     
-                    // After animation, open the popup for the new marker
+                    // After animation, find and open the popup for the new marker
                     setTimeout(() => {
                         const newMarker = markers.find(m => {
                             const markerLatLng = m.getLatLng();
-                            const tolerance = 0.0001; // Small tolerance for floating point comparison
-                            return Math.abs(markerLatLng.lng - data.location.longitude) < tolerance &&
-                                   Math.abs(markerLatLng.lat - data.location.latitude) < tolerance;
+                            const tolerance = 0.001; // Slightly larger tolerance for coordinate matching
+                            return Math.abs(markerLatLng.lng - parseFloat(data.location.longitude)) < tolerance &&
+                                   Math.abs(markerLatLng.lat - parseFloat(data.location.latitude)) < tolerance;
                         });
                         if (newMarker) {
+                            console.log('📍 Found new marker, opening popup');
                             newMarker.openPopup();
+                        } else {
+                            console.warn('⚠️ New marker not found after reload. Total markers:', markers.length);
                         }
-                    }, 1600);
+                    }, 2000); // Increased timeout to ensure markers are loaded
                 }
+                
+                alert('✅ Media uploaded successfully! Pin added to map.');
             } catch (markerError) {
                 console.error('❌ Error reloading markers:', markerError);
                 alert('Upload successful, but failed to reload markers. Please refresh the page.');
             }
-            
-            alert('✅ Media uploaded successfully! Pin added to map.');
         } else {
             console.error('❌ Upload failed:', data.error);
             alert(data.error || 'Upload failed. Please try again.');
@@ -2655,9 +2666,115 @@ function getCategoryName(category) {
 // Annotation functions - Leaflet Draw handles these automatically via its toolbar
 // No custom functions needed - users click the toolbar buttons
 
+// Matterport integration
+let matterportSDK = null;
+let currentMatterportSweep = null;
+
 function show360Views() {
-    alert('360° Views feature coming soon!');
+    // Show a modal to select or enter Matterport sweep ID
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+            <h2>360° Matterport View</h2>
+            <p style="margin-bottom: 1rem; color: #666;">Enter a Matterport sweep ID or select from existing locations:</p>
+            <div class="form-group">
+                <label for="matterportSweepId">Matterport Sweep ID</label>
+                <input type="text" id="matterportSweepId" placeholder="e.g., abc123xyz" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+                <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">You can find this in your Matterport dashboard</p>
+            </div>
+            <button onclick="loadMatterportView()" class="btn-submit" style="width: 100%; margin-top: 1rem;">Load 360° View</button>
+            <button onclick="this.parentElement.parentElement.remove()" style="width: 100%; margin-top: 0.5rem; padding: 0.75rem; background: #ccc; color: #333; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
 }
+
+function loadMatterportView() {
+    const sweepId = document.getElementById('matterportSweepId').value.trim();
+    if (!sweepId) {
+        alert('Please enter a Matterport sweep ID');
+        return;
+    }
+    
+    // Close modal
+    document.querySelector('.modal').remove();
+    
+    // Show Matterport viewer
+    showMatterportViewer(sweepId);
+}
+
+function showMatterportViewer(sweepId) {
+    // Hide map
+    document.getElementById('map').style.display = 'none';
+    
+    // Show Matterport container
+    let container = document.getElementById('matterportContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'matterportContainer';
+        container.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000; background: #000;';
+        document.body.appendChild(container);
+    }
+    
+    container.innerHTML = `
+        <div style="position: absolute; top: 20px; right: 20px; z-index: 10001;">
+            <button onclick="closeMatterportViewer()" style="padding: 0.75rem 1.5rem; background: #fff; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                ✕ Close
+            </button>
+        </div>
+        <div id="matterportViewer" style="width: 100%; height: 100%;"></div>
+    `;
+    container.style.display = 'block';
+    
+    // Initialize Matterport SDK
+    if (typeof SDK !== 'undefined') {
+        try {
+            const iframe = document.createElement('iframe');
+            iframe.allow = 'fullscreen; xr-spatial-tracking';
+            iframe.allowFullscreen = true;
+            iframe.src = `https://my.matterport.com/show/?m=${sweepId}`;
+            iframe.style.cssText = 'width: 100%; height: 100%; border: none;';
+            
+            document.getElementById('matterportViewer').appendChild(iframe);
+            currentMatterportSweep = sweepId;
+            
+            console.log('✅ Matterport viewer loaded:', sweepId);
+        } catch (error) {
+            console.error('❌ Error loading Matterport:', error);
+            alert('Failed to load Matterport view. Please check the sweep ID.');
+            closeMatterportViewer();
+        }
+    } else {
+        console.error('Matterport SDK not loaded');
+        alert('Matterport SDK not available. Please refresh the page.');
+        closeMatterportViewer();
+    }
+}
+
+function closeMatterportViewer() {
+    const container = document.getElementById('matterportContainer');
+    if (container) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+    }
+    
+    // Show map again
+    document.getElementById('map').style.display = 'block';
+    currentMatterportSweep = null;
+}
+
+// Make functions globally accessible
+window.show360Views = show360Views;
+window.loadMatterportView = loadMatterportView;
+window.closeMatterportViewer = closeMatterportViewer;
 
 function showDroneFootage() {
     // Open Google Drive folder in new tab
