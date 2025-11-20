@@ -942,8 +942,7 @@ function loadMarkersLegacy(categoryFilter = 'all') {
             closeOnClick: false
         }).setHTML(popupContent);
         
-        // Create marker (Mapbox uses [lng, lat] format)
-        // Create Leaflet marker
+        // Create Leaflet marker (Leaflet uses [lat, lng] format)
         const marker = L.marker([location.lat, location.lng], {
             icon: L.divIcon({
                 className: 'custom-marker-icon',
@@ -971,12 +970,7 @@ function loadMarkersLegacy(categoryFilter = 'all') {
         
         // Also add hover to popup itself to keep it open
         popup.on('open', () => {
-            const popupEl = document.querySelector('.mapboxgl-popup');
-            if (popupEl) {
-                popupEl.addEventListener('mouseenter', () => {
-                    // Keep popup open when hovering over it
-                });
-            }
+            // Leaflet popups stay open by default, no need for special handling
         });
         
         // Store marker data
@@ -1032,7 +1026,7 @@ function updateSidebar(locations) {
         });
         
         item.addEventListener('click', () => {
-            // Mapbox uses flyTo with [lng, lat] format
+            // Leaflet uses flyTo with [lat, lng] format
             map.flyTo([location.lat, location.lng], 16, {
                 duration: 2.0
             });
